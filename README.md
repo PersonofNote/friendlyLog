@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌤️ CloudWatch for Humans
 
-## Getting Started
+> Human-friendly summaries of AWS CloudWatch metrics, logs, and alerts — without needing to be a cloud engineer.
 
-First, run the development server:
+---
+
+## 🧠 What It Does
+
+CloudWatch for Humans helps **non-technical users** (or busy devs) understand their AWS application health at a glance. Instead of raw metrics, it shows:
+
+- 🟢 **Integration status** with your AWS account
+- 📊 **Summarized trends** in key logs & alerts
+- 💡 **Plain language insights** like “Errors spiked 40% after your last deployment”
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/your-username/cloudwatch-for-humans.git
+cd cloudwatch-for-humans
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+AWS_ROLE_ARN=your-cross-account-role
+```
+
+Or run the following command
+
+```bash
+cp .env.example .env.local
+```
+
+### 4. Run the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🛠 Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+├── components/          # Reusable UI components
+├── lib/                 # Supabase and AWS utilities
+├── pages/               # Next.js routes and APIs
+├── styles/              # Global CSS
+├── .env.example         # Environment variable template
+└── README.md            # You're here!
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+📦 Tech Stack
+Next.js – SSR-friendly React framework
 
-## Learn More
+Supabase – Auth + DB
 
-To learn more about Next.js, take a look at the following resources:
+AWS SDK v3 – Programmatic CloudWatch access
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+💰 Pricing Model
+This project is designed as a freemium SaaS:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Free Tier: 1 AWS integration, single dashboard
 
-## Deploy on Vercel
+Pro Tier: multiple integrations, email alerts, customizable summaries
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+📌 Roadmap
+ Basic Supabase auth flow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ AWS integration wizard
+
+ Daily summary email
+
+ Team dashboards
+
+🧑‍💻 Contributing
+PRs welcome! File issues or feature requests under the Issues tab.
+
