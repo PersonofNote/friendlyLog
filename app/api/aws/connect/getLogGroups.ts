@@ -34,8 +34,8 @@ export async function assumeUserRole(roleArn: string, externalId: string): Promi
   };
 }
 
-// Step 2: Use those credentials to fetch logs
-export async function getRecentLogs(roleArn: string, externalId: string) {
+// Step 2: Use those credentials to fetch loggroups
+export async function getLogGroups(roleArn: string, externalId: string) {
   const creds = await assumeUserRole(roleArn, externalId);
 
   const client = new CloudWatchLogsClient({
@@ -47,26 +47,17 @@ export async function getRecentLogs(roleArn: string, externalId: string) {
     },
   });
 
-  // TODO: Update to get all actual groups and logs per group!!!!
+  // Optional: list log groups to verify access and for user selection
   const logGroups = await client.send(new DescribeLogGroupsCommand());
   console.log("Log groups:");
   console.log(logGroups.logGroups)
-  // TODO: filter!
-  const firstGroup = logGroups.logGroups?.[0];
-  if (!firstGroup?.logGroupName) {
+  // Optional: fetch actual log events
+  const groupNames = logGroups.logGroups?.map(group => group.logGroupName);
+  if (!groupNames) {
     throw new Error("No log groups found");
   }
 
-  const logs = await client.send(
-    new FilterLogEventsCommand({
-      logGroupName: firstGroup.logGroupName,
-      limit: 10,
-      startTime: Date.now() - 1000 * 60 * 10, // last 10 minutes
-    })
-  );
-
   return {
-    group: firstGroup.logGroupName,
-    events: logs.events ?? [],
+    groupNames
   };
 }

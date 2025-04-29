@@ -26,6 +26,13 @@ function CopyBlock({ text, label, multiline = false }: { text: string; label: st
     );
 }
 
+const processLogGroups = (logGroups: string[]) => {
+    return logGroups.map(group => ({
+        value: group,
+        label: group.split('/')[3] || group
+    }));
+}
+
 
 export default function OnboardingWizard() {
     const [user, setUser] = useState(null)
@@ -35,6 +42,9 @@ export default function OnboardingWizard() {
     const [step, setStep] = useState(0);
     const [roleArn, setRoleArn] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const [groupNames, setGroupNames] = useState<{ value: string; label: string }[]>([]);
+    const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchExternalId = async () => {
@@ -74,27 +84,26 @@ export default function OnboardingWizard() {
         fetchExternalId()
       }, [])
 
-    useEffect(() => {
-        console.log(user)
-        console.log(externalId)
-        console.log(roleArn)
-        console.log(error)
-    }, [user, externalId, roleArn, error])
+      useEffect(() => {
+        console.log("Group names:", groupNames)
+        console.log("Selected groups:", selectedGroups)
+      }, [selectedGroups, groupNames])  
 
     const handleConnect = async () => {
         setError(null)
-        console.log("Handling connect")
+        setMessage(null)
         try {
-            const response = await fetch("/api/logs", {
+            const response = await fetch("/api/aws/connect", {
                 method: "POST",
-                body: JSON.stringify({ roleArn }),
+                body: JSON.stringify({ roleArn, externalId }),
                 headers: { "Content-Type": "application/json" },
             });
             const data = await response.json();
-            console.log("DATA")
-            console.log(data)
-            if (data.status === 200) {
+            if (data.success) {
+                setMessage("Successfully connected to AWS");
                 setError(null);
+                setGroupNames(processLogGroups(data.groupNames));
+                setStep((s) => Math.min(s + 1, steps.length - 1))
             } else {
                 setError(data.error);
             }
@@ -102,7 +111,32 @@ export default function OnboardingWizard() {
                 console.error('Error connecting to AWS:', error)
                 setError('Failed to connect to AWS')
         }
-    }
+    };
+
+    const handleGroupChoice = async (selectedLogGroups: string[]) => {
+        // TODO: Fetch allowed number of logGroups based on permissions
+        setError(null)
+        setMessage(null)
+        try {
+            const response = await fetch("/api/logs/selectedLogGroups", {
+                method: "POST",
+                body: JSON.stringify({ selectedLogGroups }),
+                headers: { "Content-Type": "application/json" },
+            });
+            const data = await response.json();
+            if (data.success) {
+                setMessage("Successfully saved selected log groups");
+                setError(null);
+                setStep((s) => Math.min(s + 1, steps.length - 1))
+                // Todo: redirect to dashboard
+            } else {
+                setError(data.error);
+            }
+        } catch (error) {
+                console.error('Error saving selected log groups:', error)
+                setError('Failed to save selected log groups')
+        }
+    };
 
     const steps = [
         {
@@ -137,7 +171,7 @@ export default function OnboardingWizard() {
             body: (
                 <div>
                     <p>When asked for Account ID, enter:</p>
-                    <CopyBlock text="728724624393" label="FriendlyLog AWS Account ID" />
+                    <CopyBlock text="029517665595" label="FriendlyLog AWS Account ID" />
                     <p className="mt-4">Check "Require External ID" and enter:</p>
                     <CopyBlock text={externalId || ""} label="Your External ID" />
                     <p className="mt-4">Enter a name for the role:</p>
@@ -196,6 +230,34 @@ export default function OnboardingWizard() {
                 </div>
             ),
         },
+        {
+            title: "Select Log Groups",
+            body: (
+                <div>
+                    <p>Choose the log groups you want to monitor:</p>
+                    {groupNames.length === 0 && <p>Log groups will be fetched from AWS after you connect</p>}
+                    <div className="mt-2">
+                        {groupNames.map((name, index) => (
+                            <label key={index} className="inline-flex items-center">
+                                <input
+                                    type="checkbox"
+                                    value={name.value}
+                                    checked={selectedGroups.includes(name.value)}
+                                    onChange={(e) => setSelectedGroups((prev) =>
+                                        prev.includes(name.value)
+                                          ? prev.filter(g => g !== name.value)
+                                          : [...prev, name.value]
+                                    )}
+                                    className="mr-2"
+                                />
+                                <span>{name.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                    <button onClick={() => handleGroupChoice(selectedGroups)} className="btn btn-primary mt-2">Done</button>
+                </div>
+            ),
+        },
     ];
 
     const stepsAsList = steps.map((step, index) => (
@@ -205,7 +267,98 @@ export default function OnboardingWizard() {
         </li>
     ))
     
-
+const testGroups = [
+    {
+        "value": "/aws/lambda/CFEnableSagemakerProjectsTut",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/CFGetCatalogRoles",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/CFGetDefaultVpcIdTut",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/CFN-SM-IM-Lambda-Catalog-DelayLambda-oGRg9hy3YOtm",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/ai-image-lambda-HandleImagesFunction-ianp58yBQdai",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/ai-or-real-HandleImagesFunction-Swe8YsPwDoVs",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/animal-detector-prod-hello",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/animal-detector-prod-infer",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/animal-detector-prod-train",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/animal-detector-prod-upload",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/moodry-api-prod-app",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/lambda/sludgehub-animal-detection",
+        "label": "lambda"
+    },
+    {
+        "value": "/aws/sagemaker/Endpoints/jumpstart-example-FT-tensorflow-ic-imag-2023-09-14-03-33-10-010",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/Endpoints/jumpstart-example-FT-tensorflow-ic-imag-2023-09-15-05-28-04-997",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/Endpoints/jumpstart-example-tensorflow-ic-imagene-2023-09-14-03-00-48-322",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/Endpoints/sludgehub-classifier-tensorflow-ic-imag-2023-09-15-19-44-09-447",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/Endpoints/sm-clarify-fraud-detect-xgb-model-1694657821-5fe3",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/Endpoints/sm-clarify-fraud-detect-xgb-model-1694658522-5a2f",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/Endpoints/xgb-fraud-model-dev-2023-09-14-02-46-34-620",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/ProcessingJobs",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/TrainingJobs",
+        "label": "sagemaker"
+    },
+    {
+        "value": "/aws/sagemaker/studio",
+        "label": "sagemaker"
+    }
+]
+console.log("FORMAT")
+console.log(testGroups.map(group => group.value.trim().split('/')[3]))
     return (
         <div className="flex flex-col lg:items-center md:justify-center min-h-screen">
             {showWizard ? (
@@ -233,6 +386,7 @@ export default function OnboardingWizard() {
             ) : (<div className="flex flex-col gap-4 p-6">
                 <div className="text-xl font-semibold mb-2">Connect FriendlyLog to your AWS account</div>
                 <ol className="list-decimal ml-5">{stepsAsList}</ol>
+                {message && <div className="text-green-500 mt-2">{message}</div>}
                 {error && <div className="text-red-500 mt-2">{error}</div>}
             </div>)}
             <button className="btn btn-sm btn-soft justify-self-end" onClick={() => setShowWizard(!showWizard)}>Show as {showWizard ? 'list' : 'wizard'}</button>

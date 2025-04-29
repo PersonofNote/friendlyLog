@@ -3,17 +3,29 @@
 import { useEffect, useState } from 'react'
 
 export const Logs = ({ user }) => {
-    const [logs, setLogs] = useState('')
+    const [logs, setLogs] = useState([])
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    const fetchLogs = async () => {
+        try {
+            const response = await fetch('/api/logs')
+            const data = await response.json()
+            console.log(data)
+            setLogs(data.logs)
+            setLoading(false)
+        } catch (error) {
+            console.error('Error fetching logs:', error)
+            setError('Failed to fetch logs')
+        }
+    }
 
     useEffect(() => {
-        fetch('/api/logs')
-            .then((res) => res.json())
-            .then((data) => setLogs(data.logs))
-            .finally(() => setLoading(false))
+        fetchLogs();
     }, [])
 
     useEffect(() => {
+        console.log("LOGS")
         console.log(logs)
     }, [logs])
 
@@ -26,7 +38,7 @@ export const Logs = ({ user }) => {
                 <ul className="list bg-base-100 rounded-box shadow-md">
 
                     <li className="p-4 pb-2 text-xs opacity-60 tracking-wide">Last refreshed at: </li>
-                    {logs.map(log => (
+                    {logs && logs.length > 0 && logs.map(log => (
                         <li className="list-row">
                             <div>💥</div>
                             <div>

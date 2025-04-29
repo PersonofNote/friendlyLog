@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
 import { createClient } from "@/utils/supabase/server";
+import { getLogGroups } from "./getLogGroups";
 
 
 const sts = new STSClient({ region: "us-east-1" });
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   const userId = user.id;
 
-  // Fetch external ID from DB
+  // Consider moving this to the aws_connections table and creating that row on user creation
   const { data: externalData, error: externalError } = await supabase
     .from("profiles")
     .select("external_id")
@@ -35,7 +36,6 @@ export async function POST(req: NextRequest) {
 
   const externalId = externalData.external_id;
 
-  // Try to assume the role
   try {
     const command = new AssumeRoleCommand({
       RoleArn: roleArn,
@@ -50,19 +50,23 @@ export async function POST(req: NextRequest) {
       throw new Error("Invalid credentials");
     }
 
-    // Save the role ARN to DB
-    /*
+    // Save the role ARN to DB - Consider letting this also be an update in case you've already created the row
     const { error: saveError } = await supabase
       .from("aws_connections")
-      .update({ role_arn: roleArn, connected_at: new Date().toISOString() })
-      .eq("user_id", userId);
+      .insert({ role_arn: roleArn, external_id: externalId, user_id: userId });
 
     if (saveError) {
       throw saveError;
     }
-      */
 
-    return NextResponse.json({ success: true });
+    try {
+      const groups = await getLogGroups(roleArn, externalId);
+      console.log("Groups", groups)
+      return NextResponse.json({ success: true, groupNames: groups.groupNames, message: "Successfully connected to AWS" }, { status: 200 });
+    } catch (err: any) {
+      console.error("Log fetch error:", err);
+      return NextResponse.json({ error: "Failed to fetch logs" }, { status: 500 });
+    }
   } catch (err: any) {
     console.error("AssumeRole failed:", err);
     return NextResponse.json(
