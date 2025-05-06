@@ -52,7 +52,7 @@ export default function PriceTiers() {
           <ul className="space-y-2 text-sm flex-1">
             {tier.perks.map((perk, i) => (
               <li key={i} className="flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2 inline-block text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2 inline-block text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 <span>{perk}</span>
               </li>
             ))}
@@ -60,13 +60,15 @@ export default function PriceTiers() {
 
           <div className="mt-6">
             <p className="text-2xl font-bold">{tier.price}</p>
-            <button
-              className={`btn btn-lg ${
-                tier.highlight ? 'btn-secondary' : 'btn-primary'
-              }`}
-            >
-              {tier.name === 'Free' ? 'Start Free' : 'Choose Plan'}
-            </button>
+            <a href={`/auth/signup?tier=${tier.name.toLowerCase()}`}>
+              <button
+                className={`btn btn-lg ${
+                  tier.highlight ? 'btn-secondary' : 'btn-primary'
+                }`}
+              >
+                {tier.name === 'Free' ? 'Start Free' : 'Choose Plan'}
+              </button>
+            </a>
           </div>
         </div>
       ))}

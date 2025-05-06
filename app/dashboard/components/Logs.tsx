@@ -1,60 +1,64 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LogViewer } from './LogViewer';
 
-export const Logs = ({ user }) => {
-    const [logs, setLogs] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+export const Logs = ({ logs, loading, selectedRange, setSelectedRange }: { logs: any, loading: boolean, selectedRange: string, setSelectedRange: (range: string) => void }) => { 
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+    const ranges = [
+        { label: 'Last 12 Hours', value: '12h' },
+        { label: 'Today', value: 'today' },
+        { label: 'Last 1 Day', value: '1d' },
+        { label: 'Last 7 Days', value: '7d' },
+        { label: 'Last 30 Days', value: '30d' },
+        { label: 'All Time', value: 'all' },
+      ];
+      
+    const toggleGroup = (name: string) => {
+      setOpenGroups((prev) => ({
+        ...prev,
+        [name]: !prev[name],
+      }));
+    };
+    const noLogs =  <div>
+    <h2 className="text-xl font-semibold mb-2">Logs</h2>
+    <p>No logs found</p>
+</div>
 
-    const fetchLogs = async () => {
-        try {
-            const response = await fetch('/api/logs')
-            const data = await response.json()
-            console.log(data)
-            setLogs(data.logs)
-            setLoading(false)
-        } catch (error) {
-            console.error('Error fetching logs:', error)
-            setError('Failed to fetch logs')
-        }
-    }
-
-    useEffect(() => {
-        fetchLogs();
-    }, [])
-
-    useEffect(() => {
-        console.log("LOGS")
-        console.log(logs)
-    }, [logs])
-
-    return (
-        <div className="mt-6">
-            <h2 className="text-xl font-semibold mb-2">Logs</h2>
-            {loading ? (
-                <p>Fetching logs...</p>
-            ) : (
-                <ul className="list bg-base-100 rounded-box shadow-md">
-
-                    <li className="p-4 pb-2 text-xs opacity-60 tracking-wide">Last refreshed at: </li>
-                    {logs && logs.length > 0 && logs.map(log => (
-                        <li className="list-row">
-                            <div>💥</div>
-                            <div>
-                                <div>{log.message}</div>
-                                <div className="text-xs uppercase font-semibold opacity-60">{log.timestamp}</div>
-                            </div>
-                            <button className="btn btn-square btn-ghost">
-                                <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor"><path d="M6 3L20 12 6 21 6 3z"></path></g></svg>
-                            </button>
-                            <button className="btn btn-square btn-ghost">
-                                <svg className="size-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></g></svg>
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
+       return loading ?  (<span className="loading loading-ring loading-xs"></span>)   
+       : (<div className="mt-6">
+             <select
+        value={selectedRange}
+        onChange={(e) => setSelectedRange(e.target.value)}
+        className="border rounded px-3 py-2 mb-4"
+      >
+        {ranges.map((r) => (
+          <option key={r.value} value={r.value}>{r.label}</option>
+        ))}
+      </select>
+        <div className="space-y-4">
+            {logs.length === 0 ? noLogs : null}
+            {logs.map((group: any) => {
+                const isOpen = openGroups[group.logGroupName] ?? true;
+                return (
+                <div key={group.logGroupName} className="p-4 border-b border-dashed border-gray-200">
+                    <button
+                        onClick={() => toggleGroup(group.logGroupName)}
+                        className="flex items-center justify-between w-full text-left"
+                    >
+                        <h2 className="font-bold text-lg">{group.logGroupName}</h2>
+                        <span className="text-sm text-blue-600">
+                            {isOpen ? "Collapse" : "Expand"}
+                        </span>
+                    </button>
+                    {isOpen && (
+                        <LogViewer events={group.events} />
+                    )}
+                </div>
+                    
+                )}
+            )} 
         </div>
+    </div>
     )
 };

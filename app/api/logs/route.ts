@@ -1,124 +1,100 @@
-
-//import { CloudWatchLogsClient, FilterLogEventsCommand } from "@aws-sdk";
 import { NextRequest, NextResponse } from "next/server";
-import { getRecentLogs } from "./getRecentLogs";
 import { createClient } from "@/utils/supabase/server";
+import { withAssumedRole } from "../helpers";
 import {
   CloudWatchLogsClient,
   FilterLogEventsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
 
-
-export async function POST(req: NextRequest) {
-  const { roleArn, logGroupName } = await req.json();
-
-  console.log(roleArn, logGroupName)
-
-  if (!roleArn || !logGroupName) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
-
-  try {
-    // Step 1: Assume Role using FriendlyLog's credentials
-    const stsClient = new STSClient({
-      region: "us-east-1", // update to your customer's region if needed
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-      },
-    });
-
-    const assumeCommand = new AssumeRoleCommand({
-      RoleArn: roleArn,
-      RoleSessionName: "FriendlyLogSession",
-      DurationSeconds: 900,
-    });
-
-    const assumed = await stsClient.send(assumeCommand);
-
-    if (!assumed.Credentials) {
-      throw new Error("Invalid credentials");
-    };
-
-    // Step 2: Use temporary credentials to fetch logs
-    const logsClient = new CloudWatchLogsClient({
-      region: "us-east-1",
-      credentials: {
-        accessKeyId: assumed.Credentials?.AccessKeyId!,
-        secretAccessKey: assumed.Credentials?.SecretAccessKey!,
-        sessionToken: assumed.Credentials?.SessionToken!,
-      },
-    });
-
-    const logCommand = new FilterLogEventsCommand({
-      logGroupName,
-      limit: 20,
-    });
-
-    const logs = await logsClient.send(logCommand);
-
-    console.log(logs)
-
-    return NextResponse.json({
-      success: true,
-      events: logs.events || [],
-    });
-  } catch (error) {
-    console.error("AWS error:", error);
-    return NextResponse.json({ error: "Failed to assume role or fetch logs" }, { status: 500 });
-  }
-};
-
 export async function GET(req: NextRequest) {
-  console.log("route hit")
+  console.log("🔄 Route hit");
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const { data, error } = await supabase
-    .from("aws_connections")
+  const userId = user.id;
+
+  const { data: awsData, error: awsError } = await supabase
+    .from("friendlylog_aws_connections")
     .select("role_arn, external_id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
-    console.log("DATA", data)
+    console.log("AWS DATA")
+    console.log(awsData)
 
-  if (error || !data?.role_arn || !data?.external_id) {
-    return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
+  if (awsError || !awsData?.role_arn || !awsData?.external_id) {
+    return NextResponse.json({ error: "Missing AWS connection" }, { status: 400 });
+  }
+
+  const { data: settingsData, error: settingsError } = await supabase
+    .from("friendlylog_user_settings")
+    .select("tracked_log_groups")
+    .eq("user_id", userId)
+    .single();
+
+  if (settingsError || !settingsData?.tracked_log_groups) {
+    return NextResponse.json({ error: "No log groups configured" }, { status: 400 });
+  }
+
+  const { role_arn: roleArn, external_id: externalId } = awsData;
+  const logGroups: string[] = settingsData.tracked_log_groups;
+
+
+  // date range 
+  const rangeParam = req.nextUrl.searchParams.get('range') || '1d'; // default to last ay
+
+  let startTime: number;
+
+  switch (rangeParam) {
+    case 'today':
+      const startOfToday = new Date();
+      startOfToday.setUTCHours(0, 0, 0, 0);
+      startTime = startOfToday.getTime();
+      break;
+    case '7d':
+      startTime = Date.now() - 7 * 24 * 60 * 60 * 1000; // last 7 days
+      break;
+    case '1d':
+    default:
+      startTime = Date.now() - 24 * 60 * 60 * 1000; // last 1 day
   }
 
   try {
-    const logs = await getRecentLogs(data.role_arn, data.external_id);
-    console.log("🪵", logs)
-    return NextResponse.json(logs);
+    const logs = await withAssumedRole(roleArn, externalId, async (creds) => {
+      const logsClient = new CloudWatchLogsClient({
+        region: "us-east-1",
+        credentials: creds,
+      });
+
+      // Fetch logs from all saved log groups in parallel
+      const logFetches = logGroups.map(async (logGroupName) => {
+        const cmd = new FilterLogEventsCommand({
+          logGroupName,
+          startTime
+        });
+
+        const response = await logsClient.send(cmd);
+
+        return {
+          logGroupName,
+          events: response.events || [],
+        };
+      });
+
+      const results = await Promise.all(logFetches);
+
+      return results;
+    });
+
+    console.log("🪵 Logs fetched:", logs);
+    return NextResponse.json({ success: true, logs });
+
   } catch (err: any) {
-    console.error("Log fetch error:", err);
+    console.error("❌ Log fetch error:", err);
     return NextResponse.json({ error: "Failed to fetch logs" }, { status: 500 });
   }
 }
-
-/*
-export default async function handler(req: NextRequest, res: NextResponse) {
-  const client = new CloudWatchLogsClient({
-    region: "us-east-1", // replace with your region
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
-  });
-
-  try {
-    const command = new FilterLogEventsCommand({
-      logGroupName: "/aws/lambda/your-log-group", // replace with your log group
-      limit: 50,
-    });
-
-    const response = await client.send(command);
-    res.status(200).json(response.events || []);
-  } catch (error) {
-    console.error("Error fetching logs:", error);
-    res.status(500).json({ error: "Failed to fetch logs" });
-  }
-}
-  */

@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ClipboardCopy, ClipboardCheck, SquareArrowOutUpRight, ShieldCheck } from "lucide-react";
+import { ClipboardCopy, ClipboardCheck, SquareArrowOutUpRight } from "lucide-react";
 import { createClient } from '@/utils/supabase/client';
+import { useRouter } from "next/navigation";
 
 function CopyBlock({ text, label, multiline = false }: { text: string; label: string; multiline?: boolean }) {
     const [copied, setCopied] = useState(false);
@@ -45,6 +46,11 @@ export default function OnboardingWizard() {
     const [message, setMessage] = useState<string | null>(null);
     const [groupNames, setGroupNames] = useState<{ value: string; label: string }[]>([]);
     const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+    const router = useRouter();
+
+    useEffect(() => {
+        console.log('Selected groups:', selectedGroups)
+    }, [selectedGroups])
 
     useEffect(() => {
         const fetchExternalId = async () => {
@@ -67,9 +73,9 @@ export default function OnboardingWizard() {
           setUser(user)
     
           const { data: profile, error: profileError } = await supabase
-            .from('profiles')
+            .from('friendlylog_user_settings')
             .select('external_id')
-            .eq('id', user.id)
+            .eq('user_id', user.id)
             .single()
     
           if (profileError) {
@@ -92,6 +98,8 @@ export default function OnboardingWizard() {
     const handleConnect = async () => {
         setError(null)
         setMessage(null)
+        console.log("Role ARN:", roleArn)
+        console.log("External ID:", externalId)
         try {
             const response = await fetch("/api/aws/connect", {
                 method: "POST",
@@ -114,21 +122,25 @@ export default function OnboardingWizard() {
     };
 
     const handleGroupChoice = async (selectedLogGroups: string[]) => {
-        // TODO: Fetch allowed number of logGroups based on permissions
+        // TODO: limit allowed number of logGroups based on permissions
+        // TODO: Implement some kind of filtering/searching if they have tons of groups
+        // TODO: Distinguish among logtypes, for example I have 7 just named "Endpoints"
         setError(null)
         setMessage(null)
         try {
-            const response = await fetch("/api/logs/selectedLogGroups", {
+            const response = await fetch("/api/logs/logGroups", {
                 method: "POST",
                 body: JSON.stringify({ selectedLogGroups }),
                 headers: { "Content-Type": "application/json" },
             });
             const data = await response.json();
             if (data.success) {
-                setMessage("Successfully saved selected log groups");
+                setMessage("Successfully saved selected log groups. Redirecting to dashboard...");
                 setError(null);
                 setStep((s) => Math.min(s + 1, steps.length - 1))
-                // Todo: redirect to dashboard
+                setTimeout(() => {
+                    router.replace("/dashboard")
+                }, 5000)
             } else {
                 setError(data.error);
             }
@@ -267,98 +279,6 @@ export default function OnboardingWizard() {
         </li>
     ))
     
-const testGroups = [
-    {
-        "value": "/aws/lambda/CFEnableSagemakerProjectsTut",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/CFGetCatalogRoles",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/CFGetDefaultVpcIdTut",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/CFN-SM-IM-Lambda-Catalog-DelayLambda-oGRg9hy3YOtm",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/ai-image-lambda-HandleImagesFunction-ianp58yBQdai",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/ai-or-real-HandleImagesFunction-Swe8YsPwDoVs",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/animal-detector-prod-hello",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/animal-detector-prod-infer",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/animal-detector-prod-train",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/animal-detector-prod-upload",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/moodry-api-prod-app",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/lambda/sludgehub-animal-detection",
-        "label": "lambda"
-    },
-    {
-        "value": "/aws/sagemaker/Endpoints/jumpstart-example-FT-tensorflow-ic-imag-2023-09-14-03-33-10-010",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/Endpoints/jumpstart-example-FT-tensorflow-ic-imag-2023-09-15-05-28-04-997",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/Endpoints/jumpstart-example-tensorflow-ic-imagene-2023-09-14-03-00-48-322",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/Endpoints/sludgehub-classifier-tensorflow-ic-imag-2023-09-15-19-44-09-447",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/Endpoints/sm-clarify-fraud-detect-xgb-model-1694657821-5fe3",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/Endpoints/sm-clarify-fraud-detect-xgb-model-1694658522-5a2f",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/Endpoints/xgb-fraud-model-dev-2023-09-14-02-46-34-620",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/ProcessingJobs",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/TrainingJobs",
-        "label": "sagemaker"
-    },
-    {
-        "value": "/aws/sagemaker/studio",
-        "label": "sagemaker"
-    }
-]
-console.log("FORMAT")
-console.log(testGroups.map(group => group.value.trim().split('/')[3]))
     return (
         <div className="flex flex-col lg:items-center md:justify-center min-h-screen">
             {showWizard ? (
