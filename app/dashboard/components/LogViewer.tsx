@@ -30,6 +30,13 @@ export function LogViewer({ events, sortOrder, loading }: { events: any[], sortO
     sortLogs();
   }, [sortOrder]);
 
+  useEffect(() => {
+    console.log(events)
+    console.log("FILTER")
+    console.log(sortedLogs)
+    console.log(filteredLogs)
+  }, [events, filter, sortOrder]);
+
   return loading ?  (<span className="loading loading-ring loading-xs"></span>)   : (
     <div>
         {filter !== "all" && <div className="flex items-center gap-2"><Funnel className="w-4 h-4" aria-label="Filter" />| <StatusTag status={filter} onClick={() => setFilter("all")} aria-label="Clear filter"/></div>}

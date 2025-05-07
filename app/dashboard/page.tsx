@@ -45,6 +45,10 @@ export default function Dashboard() {
 
     fetchLogs();
   }, [selectedRange]);
+
+  useEffect(() => {
+    console.log(logs)
+  }, [logs]);
   
   useEffect(() => {
     const checkUser = async () => {

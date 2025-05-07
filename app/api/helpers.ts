@@ -1,4 +1,8 @@
 import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
+import {
+  CloudWatchLogsClient,
+  FilterLogEventsCommand,
+} from "@aws-sdk/client-cloudwatch-logs";
 
 const sts = new STSClient({
   region: "us-east-1",
@@ -38,3 +42,34 @@ export async function withAssumedRole<T>(
 
   return callback(tempCreds);
 }
+
+export const getLogs = async (roleArn: string, externalId: string, logGroups: string[], startTime?: number) => {
+    
+  const fetchedLogs = await withAssumedRole(roleArn, externalId, async (creds) => {
+    const logsClient = new CloudWatchLogsClient({
+      region: "us-east-1",
+      credentials: creds,
+    });
+
+    const logFetches = logGroups.map(async (logGroupName) => {
+      const cmd = new FilterLogEventsCommand({
+        logGroupName,
+        ...(startTime ? { startTime } : {}), // Only add startTime if defined
+        limit: 1000
+      });
+
+      const response = await logsClient.send(cmd);
+
+      return {
+        logGroupName,
+        events: response.events || [],
+      };
+    });
+
+    const results = await Promise.all(logFetches);
+
+    return results;
+  });
+  return fetchedLogs;
+
+};

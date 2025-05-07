@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { withAssumedRole } from "../helpers";
+import { withAssumedRole, getLogs } from "../helpers";
 import {
   CloudWatchLogsClient,
   FilterLogEventsCommand,
@@ -65,33 +65,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const logs = await withAssumedRole(roleArn, externalId, async (creds) => {
-      const logsClient = new CloudWatchLogsClient({
-        region: "us-east-1",
-        credentials: creds,
-      });
-
-      // Fetch logs from all saved log groups in parallel
-      const logFetches = logGroups.map(async (logGroupName) => {
-        const cmd = new FilterLogEventsCommand({
-          logGroupName,
-          ...(startTime ? { startTime } : {}), // Only add startTime if defined
-          limit: 1000
-        });
-
-        const response = await logsClient.send(cmd);
-
-        return {
-          logGroupName,
-          events: response.events || [],
-        };
-      });
-
-      const results = await Promise.all(logFetches);
-
-      return results;
-    });
-
+   
+    const logs = await getLogs(roleArn, externalId, logGroups, startTime);
+    
     return NextResponse.json({ success: true, logs });
 
   } catch (err) {
