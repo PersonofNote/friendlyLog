@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { LogViewer } from './LogViewer';
+import { noLogs } from './noLogs';
 
-export const Logs = ({ logs, loading, selectedRange, setSelectedRange }: { logs: any, loading: boolean, selectedRange: string, setSelectedRange: (range: string) => void }) => { 
+export const Logs = ({ groups, loading, selectedRange, setSelectedRange }: { groups: any, loading: boolean, selectedRange: string, setSelectedRange: (range: string) => void }) => { 
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
     const ranges = [
         { label: 'Last 12 Hours', value: '12h' },
         { label: 'Today', value: 'today' },
@@ -13,32 +16,35 @@ export const Logs = ({ logs, loading, selectedRange, setSelectedRange }: { logs:
         { label: 'Last 30 Days', value: '30d' },
         { label: 'All Time', value: 'all' },
       ];
-      
+
     const toggleGroup = (name: string) => {
       setOpenGroups((prev) => ({
         ...prev,
         [name]: !prev[name],
       }));
     };
-    const noLogs =  <div>
-    <h2 className="text-xl font-semibold mb-2">Logs</h2>
-    <p>No logs found</p>
-</div>
 
-       return loading ?  (<span className="loading loading-ring loading-xs"></span>)   
-       : (<div className="mt-6">
-             <select
-        value={selectedRange}
-        onChange={(e) => setSelectedRange(e.target.value)}
-        className="border rounded px-3 py-2 mb-4"
-      >
-        {ranges.map((r) => (
-          <option key={r.value} value={r.value}>{r.label}</option>
-        ))}
-      </select>
+   
+
+       return   (
+       <div className="mt-6">
+        <div className="flex items-center gap-2 mb-4">
+            <select
+                value={selectedRange}
+                onChange={(e) => setSelectedRange(e.target.value)}
+                className="select select-sm"
+            >
+                {ranges.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+            </select>
+            <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="btn btn-xs btn-ghost">
+            {sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}
+            </button>
+        </div>
         <div className="space-y-4">
-            {logs.length === 0 ? noLogs : null}
-            {logs.map((group: any) => {
+            {groups.length === 0 ? loading ? (<span className="loading loading-ring loading-xs"></span>) : noLogs : null}
+            {groups.map((group: any) => {
                 const isOpen = openGroups[group.logGroupName] ?? true;
                 return (
                 <div key={group.logGroupName} className="p-4 border-b border-dashed border-gray-200">
@@ -52,7 +58,7 @@ export const Logs = ({ logs, loading, selectedRange, setSelectedRange }: { logs:
                         </span>
                     </button>
                     {isOpen && (
-                        <LogViewer events={group.events} />
+                        <LogViewer events={group.events} sortOrder={sortOrder} loading={loading} />
                     )}
                 </div>
                     

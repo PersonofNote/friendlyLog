@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { groupLogsByInvocation } from "./helpers";
 import { StatusTag } from "./StatusTag";
-import { ChevronDown, ChevronUp, Funnel } from "lucide-react";
+import { ChevronDown, ChevronUp, Funnel, Timer, ThermometerSnowflake } from "lucide-react";
+import { noLogs } from "./noLogs";
 
-export function LogViewer({ events }: { events: any[] }) {
+export function LogViewer({ events, sortOrder, loading }: { events: any[], sortOrder: 'asc' | 'desc', loading: boolean }) {
   const [filter, setFilter] = useState("all");
   const invocations = groupLogsByInvocation(events);
-    console.log("INVOCATIONS")
-    console.log(invocations)
+  const [sortedLogs, setSortedLogs] = useState<any[]>([]);
+        
+  const sortLogs = () => {
+    const sorted = [...invocations].sort((a: any, b: any) => {
+        const aTime = a.startTime
+        const bTime = b.startTime
+        return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
+    });
+    setSortedLogs(sorted);
+};
     console.log(invocations.map((invocation: any) => new Date(invocation.startTime).toLocaleString(undefined, {
         month: "short",
         day: "numeric",
@@ -22,10 +31,14 @@ export function LogViewer({ events }: { events: any[] }) {
     )
   : invocations;
 
-  return (
+  useEffect(() => {
+    sortLogs();
+  }, [sortOrder]);
+
+  return loading ?  (<span className="loading loading-ring loading-xs"></span>)   : (
     <div>
         {filter !== "all" && <div className="flex items-center gap-2"><Funnel className="w-4 h-4" aria-label="Filter" />| <StatusTag status={filter} onClick={() => setFilter("all")} aria-label="Clear filter"/></div>}
-      {filteredInvocations.map((invocation, idx) => (
+      {sortedLogs.length === 0 ? noLogs : sortedLogs.map((invocation, idx) => (
         <InvocationBlock key={idx} invocation={invocation} filter={filter} setFilter={setFilter} />
       ))}
     </div>
@@ -52,16 +65,22 @@ function InvocationBlock({ invocation, filter, setFilter }: { invocation: any, f
          hasError || invocation.status === "error" || invocation.status === "fail" || invocation.status === "failed" || invocation.status === "errordetails" ? "border-red-500" : "border-gray-300"
       }`}
     >
-      <div className="flex justify-between">
-        <div className="flex flex-col lg:flex-row items-center">
+      <div className="flex justify-between items-center">
+        <div className="flex flex-row flex-wrap items-center">
           <span className="text-sm font-mono lg:w-40 inline-block">{logTime}</span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-grow">
           {invocation.status && (
-            <StatusTag status={invocation.status} onClick={(status) => setFilter(status)} />
+            <StatusTag status={invocation.status} onClick={(status) => setFilter(status)} aria-label="Status" />
           )}
           {invocation.durationMs && (
-            <span className="ml-2 text-sm text-gray-600">
-              ⏱ {invocation.durationMs} ms
+            <span className="ml-2 text-sm text-gray-600 flex gap-1 items-center">
+              <Timer className="w-4 h-4" aria-label="Duration" /> {invocation.durationMs} ms
+            </span>
+          )}
+          {/* TODO: consider adding coldStart to status? Depends on grouping. Possibly make status an array of tags */}
+          {invocation.coldStart && (
+            <span className="ml-2 text-sm text-blue-600 flex gap-1 items-center">
+              <ThermometerSnowflake className="w-4 h-4" aria-label="Cold Start" /> Cold Start
             </span>
           )}
           {hasError && (

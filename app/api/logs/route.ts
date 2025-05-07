@@ -5,6 +5,9 @@ import {
   CloudWatchLogsClient,
   FilterLogEventsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
+import { parseISO, subDays, subHours } from 'date-fns';
+
+//TODO: Fix date range; rignt now "all time" has limits that mess up sorting. Implement pagination
 
 export async function GET(req: NextRequest) {
   console.log("🔄 Route hit");
@@ -47,20 +50,23 @@ export async function GET(req: NextRequest) {
   // date range 
   const rangeParam = req.nextUrl.searchParams.get('range') || '1d'; // default to last ay
 
-  let startTime: number;
+  let startTime: number | undefined;
 
-  switch (rangeParam) {
-    case 'today':
-      const startOfToday = new Date();
-      startOfToday.setUTCHours(0, 0, 0, 0);
-      startTime = startOfToday.getTime();
-      break;
-    case '7d':
-      startTime = Date.now() - 7 * 24 * 60 * 60 * 1000; // last 7 days
-      break;
-    case '1d':
-    default:
-      startTime = Date.now() - 24 * 60 * 60 * 1000; // last 1 day
+  const now = new Date();
+
+  if (rangeParam === 'today') {
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    startTime = startOfToday.getTime();
+  } else if (rangeParam === '12h') {
+    startTime = subHours(now, 12).getTime();
+  } else if (rangeParam === '1d') {
+    startTime = subDays(now, 1).getTime();
+  } else if (rangeParam === '7d') {
+    startTime = subDays(now, 7).getTime();
+  } else if (rangeParam === '30d') {
+    startTime = subDays(now, 30).getTime();
+  } else if (rangeParam === 'all') {
+    startTime = undefined; // No filtering
   }
 
   try {
@@ -74,7 +80,8 @@ export async function GET(req: NextRequest) {
       const logFetches = logGroups.map(async (logGroupName) => {
         const cmd = new FilterLogEventsCommand({
           logGroupName,
-          startTime
+          ...(startTime ? { startTime } : {}), // Only add startTime if defined
+          limit: 1000
         });
 
         const response = await logsClient.send(cmd);
