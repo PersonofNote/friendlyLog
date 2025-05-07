@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Logs } from './components/Logs';
 import { checkFirstLoginAndSetup } from './checkFirstLogin';
-import { User } from '@supabase/supabase-js';
 
 export default function Dashboard() {
   // #region States
