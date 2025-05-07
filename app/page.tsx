@@ -7,8 +7,7 @@ export default function Home() {
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         <article className="prose prose-lg">
           <h1>You built the product. Let us watch the logs.</h1>
-          <h2>FriendlyLog keeps an eye on performance, spending, and infrastructure so you don’t have to.
-          Get clear, human-readable summaries — no engineering degree required.</h2>
+          <h2> Get clear, human-readable summaries — no engineering degree required.</h2>
 
           <h3>Great for:</h3>
 
@@ -18,9 +17,19 @@ export default function Home() {
             <li>Teams that want to show progress, not just put out fires</li>
           </ul>
         </article>
-
+        <div className="flex flex-col gap-4">
+          <h2 className="text-2xl font-bold">Launching Soon!</h2>
+          {/*
+          <p>Sign up to be notified when FriendlyLog is available.</p>
+          <form action="/auth/signup">
+            <input type="email" placeholder="Email" />
+            <button type="submit">Sign Up</button>
+          </form>
+          */}
+        </div>
+        {/*
         <PriceTiers />
-
+        */}
       </main>
     </div>
   );
