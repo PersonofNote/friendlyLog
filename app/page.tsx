@@ -1,5 +1,5 @@
 'use client';
-import PriceTiers from "./components/PriceTiers";
+//import PriceTiers from "./components/PriceTiers";
 
 export default function Home() {
   return (
