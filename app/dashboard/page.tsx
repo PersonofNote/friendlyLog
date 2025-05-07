@@ -12,7 +12,6 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [logs, setLogs] = useState([]);
-    const [user, setUser] = useState<User | null>(null);
     const [selectedRange, setSelectedRange] = useState('1d');
 
   // #endregion
@@ -60,8 +59,6 @@ export default function Dashboard() {
         // Check if user is onboarded
         if (isFirstLogin) {
           redirect("/onboarding");
-        }else {
-          setUser(JSON.parse(JSON.stringify(user)));
         }
       }
     };
