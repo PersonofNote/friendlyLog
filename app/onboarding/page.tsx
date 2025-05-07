@@ -36,9 +36,7 @@ const processLogGroups = (logGroups: string[]) => {
 
 
 export default function OnboardingWizard() {
-    const [user, setUser] = useState(null)
     const [externalId, setExternalId] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
     const [showWizard, setShowWizard] = useState(true);
     const [step, setStep] = useState(0);
     const [roleArn, setRoleArn] = useState("");
@@ -70,7 +68,6 @@ export default function OnboardingWizard() {
             console.warn('No user found')
             return
           }
-          setUser(user)
     
           const { data: profile, error: profileError } = await supabase
             .from('friendlylog_user_settings')
@@ -84,7 +81,6 @@ export default function OnboardingWizard() {
           }
     
           setExternalId(profile.external_id)
-          setLoading(false)
         }
     
         fetchExternalId()
@@ -174,7 +170,7 @@ export default function OnboardingWizard() {
                             Go to IAM Console <SquareArrowOutUpRight className="ml-2 h-4 w-4" />
                         </button>
                     </a>
-                    <p className="mt-4">Click the "create role" button and select "AWS Account" as the trusted entity type.</p>
+                    <p className="mt-4">Click the &quot;Create role&quot; button and select &quot;AWS Account&quot; as the trusted entity type.</p>
                 </div>
             ),
         },
@@ -184,7 +180,7 @@ export default function OnboardingWizard() {
                 <div>
                     <p>When asked for Account ID, enter:</p>
                     <CopyBlock text="029517665595" label="FriendlyLog AWS Account ID" />
-                    <p className="mt-4">Check "Require External ID" and enter:</p>
+                    <p className="mt-4">Check &quot;Require external ID&quot; and enter:</p>
                     <CopyBlock text={externalId || ""} label="Your External ID" />
                     <p className="mt-4">Enter a name for the role:</p>
                     <input
@@ -255,7 +251,7 @@ export default function OnboardingWizard() {
                                     type="checkbox"
                                     value={name.value}
                                     checked={selectedGroups.includes(name.value)}
-                                    onChange={(e) => setSelectedGroups((prev) =>
+                                    onChange={() => setSelectedGroups((prev) =>
                                         prev.includes(name.value)
                                           ? prev.filter(g => g !== name.value)
                                           : [...prev, name.value]

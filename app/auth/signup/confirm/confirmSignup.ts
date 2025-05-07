@@ -12,6 +12,7 @@ export async function confirmSignup() {
   }
 
   const userId = user?.id;
+  const email = user?.email;
 
   
   const { error: profileError } = await supabase
@@ -36,7 +37,7 @@ export async function confirmSignup() {
       {
         user_id: userId,
         created_at: new Date().toISOString(),
-        subscription_tier: tier,
+        subscription_tier: "free", // TODO: implement tiering
         onboarded: false
       },
     ]);

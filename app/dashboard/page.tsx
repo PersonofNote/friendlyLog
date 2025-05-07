@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
-import { SummaryCard } from './components/SummaryCard';
+import { createClient } from '@/utils/supabase/client';
 import { Logs } from './components/Logs';
 import { checkFirstLoginAndSetup } from './checkFirstLogin';
+import { User } from '@supabase/supabase-js';
 
 export default function Dashboard() {
   // #region States
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [logs, setLogs] = useState([]);
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState<User | null>(null);
     const [selectedRange, setSelectedRange] = useState('1d');
 
   // #endregion
@@ -35,19 +35,18 @@ export default function Dashboard() {
       try {
         const response = await fetch(`/api/logs?range=${selectedRange}`)
         const data = await response.json()
-        console.log(data)
         setLogs(data.logs)
         setLoading(false)
       } catch (error) {
         console.error('Error fetching logs:', error)
-        setError('Failed to fetch logs')
+        setError(error as string)
       } finally {
         setLoading(false)
       }
     }
 
     fetchLogs();
-  }, [user, selectedRange])
+  }, [selectedRange]);
   
   useEffect(() => {
     const checkUser = async () => {
@@ -62,7 +61,7 @@ export default function Dashboard() {
         if (isFirstLogin) {
           redirect("/onboarding");
         }else {
-            setUser(user);
+          setUser(JSON.parse(JSON.stringify(user)));
         }
       }
     };
@@ -94,6 +93,7 @@ export default function Dashboard() {
         <main className="p-4 sm:ml-64">
         <div className="p-4 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700">    
             <Logs groups={logs} loading={loading} selectedRange={selectedRange} setSelectedRange={setSelectedRange} />
+            {error && <p className="text-red-500">{error}</p>}
         </div>
         </main>
     </div> 

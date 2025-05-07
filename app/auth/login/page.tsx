@@ -74,7 +74,7 @@ export default function LoginPage() {
 
         <button className="btn btn-primary" type="submit">Log in</button>
 
-        <span className="text-sm">Don't have an account? </span>
+        <span className="text-sm">Don&apos;t have an account? </span>
         <a href="/auth/signup" className="btn btn-primary btn-outline">Sign up</a>
       </form>
     </div>

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// TODO: Fix filtering
 import { useState, useEffect } from "react";
 import { groupLogsByInvocation } from "./helpers";
 import { StatusTag } from "./StatusTag";
@@ -7,7 +9,7 @@ import { noLogs } from "./noLogs";
 export function LogViewer({ events, sortOrder, loading }: { events: any[], sortOrder: 'asc' | 'desc', loading: boolean }) {
   const [filter, setFilter] = useState("all");
   const invocations = groupLogsByInvocation(events);
-  const [sortedLogs, setSortedLogs] = useState<any[]>([]);
+  const [sortedLogs, setSortedLogs] = useState<any[]>(invocations);
         
   const sortLogs = () => {
     const sorted = [...invocations].sort((a: any, b: any) => {
@@ -17,19 +19,12 @@ export function LogViewer({ events, sortOrder, loading }: { events: any[], sortO
     });
     setSortedLogs(sorted);
 };
-    console.log(invocations.map((invocation: any) => new Date(invocation.startTime).toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        second: "numeric",
-        hour12: true,
-      })))
-  const filteredInvocations = filter
-  ? invocations.filter((invocation: any) =>
+
+  const filteredLogs = filter
+  ? sortedLogs.filter((invocation: any) =>
       filter === "all" ? invocation : invocation.status?.includes(filter)
     )
-  : invocations;
+  : sortedLogs;
 
   useEffect(() => {
     sortLogs();
@@ -38,14 +33,14 @@ export function LogViewer({ events, sortOrder, loading }: { events: any[], sortO
   return loading ?  (<span className="loading loading-ring loading-xs"></span>)   : (
     <div>
         {filter !== "all" && <div className="flex items-center gap-2"><Funnel className="w-4 h-4" aria-label="Filter" />| <StatusTag status={filter} onClick={() => setFilter("all")} aria-label="Clear filter"/></div>}
-      {sortedLogs.length === 0 ? noLogs : sortedLogs.map((invocation, idx) => (
-        <InvocationBlock key={idx} invocation={invocation} filter={filter} setFilter={setFilter} />
+      {filteredLogs.length === 0 ? noLogs : filteredLogs.map((invocation, idx) => (
+        <InvocationBlock key={idx} invocation={invocation} setFilter={setFilter} />
       ))}
     </div>
   );
 }
 
-function InvocationBlock({ invocation, filter, setFilter }: { invocation: any, filter: string, setFilter: (filter: string) => void }) {
+function InvocationBlock({ invocation, setFilter }: { invocation: any, setFilter: (filter: string) => void }) {
   const [open, setOpen] = useState(false);
 
   const logTime = new Date(invocation.startTime).toLocaleString(undefined, {

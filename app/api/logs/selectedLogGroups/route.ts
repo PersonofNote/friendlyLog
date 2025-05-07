@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 }
 
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     const supabase = await createClient();
   
     const { data: { user } } = await supabase.auth.getUser();
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       }
   
       return NextResponse.json({ success: true, data: trackedLogGroups }, { status: 200 });
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to fetch selected log groups:", err);
       return NextResponse.json(
         { error: "Could not fetch selected log groups" },

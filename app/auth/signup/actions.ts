@@ -2,12 +2,12 @@
 
 import { createClient } from '@/utils/supabase/server'
 //todo look into how supabase stores passwords
-export async function signup(email: string, password: string, tier: number) {
+export async function signup(email: string, password: string) {
   const supabase = await createClient()
 
   console.log("Signing up with: ", email, password)
 
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  const { error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {},

@@ -5,12 +5,11 @@ import {
   CloudWatchLogsClient,
   FilterLogEventsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
-import { parseISO, subDays, subHours } from 'date-fns';
+import { subDays, subHours } from 'date-fns';
 
 //TODO: Fix date range; rignt now "all time" has limits that mess up sorting. Implement pagination
 
 export async function GET(req: NextRequest) {
-  console.log("🔄 Route hit");
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -25,9 +24,6 @@ export async function GET(req: NextRequest) {
     .select("role_arn, external_id")
     .eq("user_id", userId)
     .single();
-
-    console.log("AWS DATA")
-    console.log(awsData)
 
   if (awsError || !awsData?.role_arn || !awsData?.external_id) {
     return NextResponse.json({ error: "Missing AWS connection" }, { status: 400 });
@@ -47,8 +43,7 @@ export async function GET(req: NextRequest) {
   const logGroups: string[] = settingsData.tracked_log_groups;
 
 
-  // date range 
-  const rangeParam = req.nextUrl.searchParams.get('range') || '1d'; // default to last ay
+  const rangeParam = req.nextUrl.searchParams.get('range') || '1d';
 
   let startTime: number | undefined;
 
@@ -66,7 +61,7 @@ export async function GET(req: NextRequest) {
   } else if (rangeParam === '30d') {
     startTime = subDays(now, 30).getTime();
   } else if (rangeParam === 'all') {
-    startTime = undefined; // No filtering
+    startTime = undefined;
   }
 
   try {
@@ -97,11 +92,9 @@ export async function GET(req: NextRequest) {
       return results;
     });
 
-    console.log("🪵 Logs fetched:", logs);
     return NextResponse.json({ success: true, logs });
 
-  } catch (err: any) {
-    console.error("❌ Log fetch error:", err);
-    return NextResponse.json({ error: "Failed to fetch logs" }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ error: `Failed to fetch logs: ${err}` }, { status: 500 });
   }
 }

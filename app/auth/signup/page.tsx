@@ -1,32 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { signup } from './actions';
 import './page.css';
 
 // TODO GET FROM SERVER
-const tierData = [{label: 'Free', value: 1}, {label: 'Pro', value: 2}, {label: 'Team', value: 3}]
+// const tierData = [{label: 'Free', value: 1}, {label: 'Pro', value: 2}, {label: 'Team', value: 3}]
 
-const allowedTiers = ['free', 'pro', 'team'] as const;
-type Tier = typeof allowedTiers[number];
+// const allowedTiers = ['free', 'pro', 'team'] as const;
+// type Tier = typeof allowedTiers[number];
 
-function validateTier(tier: string | null): Tier {
-  if (allowedTiers.includes((tier ?? 'free') as Tier)) {
-    return (tier ?? 'free') as Tier;
-  }
-  return 'free';
-}
+// function validateTier(tier: string | null): Tier {
+//   if (allowedTiers.includes((tier ?? 'free') as Tier)) {
+//     return (tier ?? 'free') as Tier;
+//   }
+//   return 'free';
+// }
 
 export default function SignupPage() {
   const supabase = createClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const tierParam = searchParams.get('tier');
-  const tier: Tier = validateTier(tierParam);
+  // TODO:
+  // const searchParams = useSearchParams();
+  // const tierParam = searchParams.get('tier');
+  // const tier: Tier = validateTier(tierParam);
   // TODO GET FROM SERVER
-  const tierValue = tierData.find(t => t.label.toLowerCase() === tier?.toLowerCase())?.value;
+  // const tierValue = tierData.find(t => t.label.toLowerCase() === tier?.toLowerCase())?.value;
+  const tier = 'free';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,8 +55,8 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const { error } = await signup(email, password, tierValue || 1);
-      if (error) {
+      const { error } = await signup(email, password);
+      if (error) {  
         console.log(error)
         setError(error);
       } else {
@@ -74,7 +76,6 @@ export default function SignupPage() {
       <form className="card items-center gap-4" onSubmit={handleSignup}>
         {tier && <div className="ribbon ribbon-top-left"><span>{tier}</span></div>}
         <h2 className="text-xl font-bold text-center">Sign up for FriendlyLog</h2>
-
         <div className="relative w-2/3">
           <input
             disabled={loading}

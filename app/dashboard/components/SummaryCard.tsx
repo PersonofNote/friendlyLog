@@ -1,4 +1,6 @@
-export const SummaryCard = ({user}) => {
+// DUMMY DATA
+
+export const SummaryCard = () => {
     return (
         <div className="bg-base-200 p-6">
 

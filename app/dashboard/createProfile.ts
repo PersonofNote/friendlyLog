@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 
 export async function createProfileAndSettings(userId: string, tier: string) {
-  const supabase = createClient()
+  const supabase = await createClient();
 
   // 1. Check if profile already exists
   const { data: existingProfile, error: profileFetchError } = await supabase
