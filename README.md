@@ -1,4 +1,4 @@
-# 🌤️ CloudWatch for Humans
+# 🌤️ FriendlyLog
 
 > Human-friendly summaries of AWS CloudWatch metrics, logs, and alerts — without needing to be a cloud engineer.
 
@@ -6,11 +6,11 @@
 
 ## 🧠 What It Does
 
-CloudWatch for Humans helps **non-technical users** (or busy devs) understand their AWS application health at a glance. Instead of raw metrics, it shows:
+FriendlyLog helps **non-technical users** (or busy devs) understand their AWS application health at a glance.
 
-- 🟢 **Integration status** with your AWS account
-- 📊 **Summarized trends** in key logs & alerts
-- 💡 **Plain language insights** like “Errors spiked 40% after your last deployment”
+- 🦚 **Prettified Logs** The Cloudwatch UI is ugly. Friendlylog, less so.
+- 📊 **Summarized trends** in key logs & alerts - coming soon
+- 💡 **Plain language insights** like “Errors spiked 40% after your last deployment” - coming soon
 
 ---
 
@@ -19,8 +19,8 @@ CloudWatch for Humans helps **non-technical users** (or busy devs) understand th
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-username/cloudwatch-for-humans.git
-cd cloudwatch-for-humans
+git clone https://github.com/PersonOfNote/friendlyLog.git
+cd friendlyLog
 ```
 
 ### 2. Install dependencies
@@ -36,13 +36,10 @@ Create a `.env` file in the root directory with the following variables:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-AWS_ROLE_ARN=your-cross-account-role
-```
-
-Or run the following command
-
-```bash
-cp .env.example .env.local
+AWS_ACCESS_KEY_ID=your-aws-access-key-id
+AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
+AWS_REGION=your-aws-region
+AWS_ROLE_ARN=your-aws-role-arn
 ```
 
 ### 4. Run the app
@@ -50,15 +47,6 @@ cp .env.example .env.local
 ```bash
 npm run dev
 ```
-
-🛠 Project Structure
-
-├── components/          # Reusable UI components
-├── lib/                 # Supabase and AWS utilities
-├── pages/               # Next.js routes and APIs
-├── styles/              # Global CSS
-├── .env.example         # Environment variable template
-└── README.md            # You're here!
 
 📦 Tech Stack
 Next.js – SSR-friendly React framework
@@ -70,19 +58,27 @@ AWS SDK v3 – Programmatic CloudWatch access
 💰 Pricing Model
 This project is designed as a freemium SaaS:
 
-Free Tier: 1 AWS integration, single dashboard
+Free Tier: 1 AWS integration/log group, single dashboard, email alerts
 
-Pro Tier: multiple integrations, email alerts, customizable summaries
+Pro Tiers: multiple integrations, customizable summaries, plain-language alert creation
 
 📌 Roadmap
- Basic Supabase auth flow
+ Basic Supabase auth flow ✅
 
- AWS integration wizard
+ AWS integration wizard/onboarding ✅
+
+ Pretty logs ✅
 
  Daily summary email
 
- Team dashboards
+ Subscription implementation
+
+ Graphs
+
+ Plain-language alerts and rule setting
 
 🧑‍💻 Contributing
-PRs welcome! File issues or feature requests under the Issues tab.
+
+File issues or feature requests under the Issues tab.
+
 
