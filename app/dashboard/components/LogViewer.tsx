@@ -7,12 +7,12 @@ import { ChevronDown, ChevronUp, Funnel, Timer, ThermometerSnowflake } from "luc
 import { noLogs } from "./noLogs";
 
 export function LogViewer({ events, sortOrder, loading }: { events: any[], sortOrder: 'asc' | 'desc', loading: boolean }) {
-  const [filter, setFilter] = useState("all");
   const invocations = groupLogsByInvocation(events);
+  const [filter, setFilter] = useState("all");
   const [sortedLogs, setSortedLogs] = useState<any[]>(invocations);
         
   const sortLogs = () => {
-    const sorted = [...invocations].sort((a: any, b: any) => {
+    const sorted = invocations.sort((a: any, b: any) => {
         const aTime = a.startTime
         const bTime = b.startTime
         return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
@@ -28,14 +28,8 @@ export function LogViewer({ events, sortOrder, loading }: { events: any[], sortO
 
   useEffect(() => {
     sortLogs();
-  }, [sortOrder]);
+  }, [events, sortOrder]);
 
-  useEffect(() => {
-    console.log(events)
-    console.log("FILTER")
-    console.log(sortedLogs)
-    console.log(filteredLogs)
-  }, [events, filter, sortOrder]);
 
   return loading ?  (<span className="loading loading-ring loading-xs"></span>)   : (
     <div>

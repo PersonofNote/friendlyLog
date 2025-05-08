@@ -1,5 +1,6 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// TODO: save timeframe to localstorage so it doesn't reset on refresh
 'use client'
 
 import { useState } from 'react'

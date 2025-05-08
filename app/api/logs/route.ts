@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { withAssumedRole, getLogs } from "../helpers";
-import {
-  CloudWatchLogsClient,
-  FilterLogEventsCommand,
-} from "@aws-sdk/client-cloudwatch-logs";
+import { getLogs } from "../helpers";
 import { subDays, subHours } from 'date-fns';
 
 //TODO: Fix date range; rignt now "all time" has limits that mess up sorting. Implement pagination
