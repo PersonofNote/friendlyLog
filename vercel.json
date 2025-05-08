@@ -1,8 +1,12 @@
 {
-  "cron": [
+  "crons": [
     {
       "path": "/api/summarize/daily",
       "schedule": "0 2 * * *"  // Runs every day at 2 AM UTC
+    },
+    {
+      "path": "/api/summarize/daily",
+      "schedule": "* * * * *"
     }
   ]
 }
