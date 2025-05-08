@@ -4,7 +4,6 @@ import {
   FilterLogEventsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
 import { createClient } from "@/utils/supabase/server";
-import { NextResponse } from "next/server";
 
 const sts = new STSClient({
   region: "us-east-1",

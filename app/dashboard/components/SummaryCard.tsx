@@ -2,6 +2,7 @@
 import {  getRequestsAndErrorsCount } from "./helpers";
 import { useState, useEffect } from "react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Logs = {[key: string]: any}[];
 
 export const SummaryCard = ({logs}: {logs: Logs}) => {
@@ -19,7 +20,7 @@ export const SummaryCard = ({logs}: {logs: Logs}) => {
         setErrorRate(errorRate);
     }, [logs]);
 
-    const healthMessage = {
+    const healthMessage: {[key: string]: {color: string, message: string}} = {
         "good": {
             color: "success",
             message: "System is healthy"
@@ -60,7 +61,7 @@ export const SummaryCard = ({logs}: {logs: Logs}) => {
             <li>Errors: {errorRequests} ({errorRate * 100}%)</li>
             </ul>
             {healthCheck && (
-                <span className={`alert alert-outline alert-${healthMessage[healthCheck].color} my-4 w-75`}>{healthMessage[healthCheck].message}</span>
+                <span className={`alert alert-outline alert-${healthMessage[healthCheck as string].color} my-4 w-75`}>{healthMessage[healthCheck].message}</span>
             )
             }
             <button onClick={handleEmail} className="btn btn-primary">Email Summary</button>

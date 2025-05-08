@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { Logs } from './components/Logs';
-import { SummaryCard } from './components/SummaryCard';
 import { checkFirstLoginAndSetup } from './checkFirstLogin';
 
 export default function Dashboard() {

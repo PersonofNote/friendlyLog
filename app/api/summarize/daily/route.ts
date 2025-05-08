@@ -1,12 +1,13 @@
-import { EmailTemplate } from '../../../components/EmailTemplate';
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from 'resend';
 import { getLogs, getUserAwsData } from '../../helpers';
 import { groupLogsByInvocation, getRequestsAndErrorsCount } from '@/app/dashboard/components/helpers';
 
+const dashboardLink = "https://friendlylog.dev/dashboard";
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST(req: NextRequest, res: NextResponse) {
+export async function POST(req: NextRequest) {
   console.log("POST /api/summarize/daily");
     if (req.method !== 'POST') return NextResponse.json({ status: 405, message: 'Method not allowed' });
 
@@ -22,16 +23,16 @@ export async function POST(req: NextRequest, res: NextResponse) {
     yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const startTime = yesterday.getTime();
-    const endTime = today.getTime();
     
 
     const logs = await getLogs(roleArn, externalId, logGroups, startTime);
-    console.log("LOGS", logs);
+  
 
     if (!logs || logs.length === 0) {
       return NextResponse.json({ error: "No logs found" }, { status: 404 });
     }
 
+    /* TODO: potentially add individual log groups instead of just all of them
     const logSummaries = {}
 
     for (const logGroup of logs) {
@@ -43,39 +44,73 @@ export async function POST(req: NextRequest, res: NextResponse) {
         logSummaries[logGroup.logGroupName] = results;
       }
     }
+    */
+    const date = new Date().toLocaleDateString();
+    const totalLogs = logs.map(logGroup => logGroup.events).flat();
+    const groupedLogs = groupLogsByInvocation(totalLogs);
+    const { totalRequests, errorRequests, errorRate, healthCheck } = getRequestsAndErrorsCount(groupedLogs);
 
-    /* 
-      const totalRequests = parseInt(results[0].find(f => f.field === 'total_requests')?.value || '0');
-      const errorRequests = parseInt(results[0].find(f => f.field === 'error_requests')?.value || '0');
+    const noLogs = `
+      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; max-width: 600px; margin: auto; padding: 20px;">
+      <h2 style="color: #4CAF50;">📊 FriendlyLog Daily Summary ${date}</h2>
   
-      // 4. Look up yesterday’s summary for comparison
-      const { data: prevSummaries } = await supabase
-        .from('daily_summaries')
-        .select('*')
-        .eq('date', yesterday.toISOString().slice(0, 10))
-        .maybeSingle();
+       ⚠️ There were no requests in the last 24 hours. If this is unexpected, please check your log groups and ensure they are correctly configured.
   
-      const prevTotal = prevSummaries?.total_requests || 0;
-      const prevErrors = prevSummaries?.error_requests || 0;
+      <p>
+        🔎 <a href="" style="color: #4CAF50; text-decoration: none; font-weight: bold;">
+          View full logs & details
+        </a>
+      </p>
   
-      const totalChangePct = prevTotal ? (((totalRequests - prevTotal) / prevTotal) * 100).toFixed(1) : 'N/A';
-      const errorChangeCount = errorRequests - prevErrors;
+      <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
+        Thanks for using FriendlyLog — keeping your AWS chaos under control.<br>
+        - The FriendlyLog Team
+      </p>
+    </div>
+    `;
+
+    const logStats = `  
+      <ul style="list-style: none; padding: 0;">
+        <li>🚀 <strong>Total Requests:</strong> ${totalRequests}</li>
+        <li>❌ <strong>Total Errors:</strong> ${errorRequests}</li>
+        <li>⚠️ <strong>Error Rate:</strong> ${errorRate * 100}%
+        <li>✅ <strong>Health Check:</strong> ${healthCheck}</li>
+      </ul>`;
+
+      /* TODO: implement later
+    const topErrors = `<h3 style="color: #4CAF50;">Top Errors Today:</h3>
+    <ol>
+      <li><code>DatabaseTimeoutError</code> — 152 occurrences</li>
+      <li><code>AuthTokenInvalid</code> — 98 occurrences</li>
+      <li><code>PaymentFailedError</code> — 47 occurrences</li>
+    </ol>`;
+    */
+
+    const html = `
+    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; max-width: 600px; margin: auto; padding: 20px;">
+      <h2 style="color: #4CAF50;">📊 Today's Summary</h2>
+
+      ${totalLogs.length < 1 ? noLogs : logStats}
+
+      <p>
+        🔎 <a href="${dashboardLink}">
+          <strong>View full logs & details</strong>
+        </a>
+      </p>
   
-      // 5. Save today’s summary
-      await supabase.from('daily_summaries').insert([{
-        user_id: 'some-user-id', // You'd loop per user in production
-        date: yesterday.toISOString().slice(0, 10),
-        total_requests: totalRequests,
-        error_requests: errorRequests,
-      }]);
-      */
+      <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
+        Thanks for using FriendlyLog — keeping your AWS chaos under control.<br>
+        - The FriendlyLog Team
+      </p>
+    </div>
+  `;
 
   try {
     const { data, error } = await resend.emails.send({
       from: 'Acme <onboarding@resend.dev>',
       to: ['habelexmail@gmail.com'],
-      subject: 'Hello world',
-      react: EmailTemplate({ logSummaries }),
+      subject: `📊 FriendlyLog Daily Summary — ${date}`,
+      html: html,
     });
 
     if (error) {
