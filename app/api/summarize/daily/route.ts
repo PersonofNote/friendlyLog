@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         </a>
       </p>
   
-      <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
+      <p style="margin-top: 30px">
         Thanks for using FriendlyLog — keeping your AWS chaos under control.<br>
         - The FriendlyLog Team
       </p>
