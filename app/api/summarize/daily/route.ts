@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     const logStats = `  
       <ul style="list-style: none; padding: 0;">
-        <li>🚀 <strong>Total Requests:</strong> ${totalRequests}</li>
+        <li>🚀 <strong>Total Requests: </strong>${totalRequests}</li>
         <li>❌ <strong>Total Errors:</strong> ${errorRequests}</li>
         <li>⚠️ <strong>Error Rate:</strong> ${errorRate * 100}%
         <li>✅ <strong>Health Check:</strong> ${healthCheck}</li>
