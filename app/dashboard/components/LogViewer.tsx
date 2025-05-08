@@ -1,13 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // TODO: Fix filtering
 import { useState, useEffect } from "react";
-import { groupLogsByInvocation } from "./helpers";
 import { StatusTag } from "./StatusTag";
 import { ChevronDown, ChevronUp, Funnel, Timer, ThermometerSnowflake } from "lucide-react";
 import { noLogs } from "./noLogs";
 
-export function LogViewer({ events, sortOrder, loading }: { events: any[], sortOrder: 'asc' | 'desc', loading: boolean }) {
-  const invocations = groupLogsByInvocation(events);
+export function LogViewer({ invocations, sortOrder, loading }: { invocations: any[], sortOrder: 'asc' | 'desc', loading: boolean }) {
+  
   const [filter, setFilter] = useState("all");
   const [sortedLogs, setSortedLogs] = useState<any[]>(invocations);
         
@@ -28,7 +27,7 @@ export function LogViewer({ events, sortOrder, loading }: { events: any[], sortO
 
   useEffect(() => {
     sortLogs();
-  }, [events, sortOrder]);
+  }, [invocations, sortOrder]);
 
 
   return loading ?  (<span className="loading loading-ring loading-xs"></span>)   : (
@@ -51,14 +50,12 @@ function InvocationBlock({ invocation, setFilter }: { invocation: any, setFilter
     minute: "numeric",
     second: "numeric",
     hour12: true,
-  })
-
-  const hasError = invocation.logs.some((log: any) => log.message.includes("ERROR") || log.message.includes("Exception"));
+  });
 
   return (
     <div
       className={`border rounded p-2 my-2 ${
-         hasError || invocation.status === "error" || invocation.status === "fail" || invocation.status === "failed" || invocation.status === "errordetails" ? "border-red-500" : "border-gray-300"
+         invocation.hasError || invocation.status === "error" || invocation.status === "fail" || invocation.status === "failed" || invocation.status === "errordetails" ? "border-red-500" : "border-gray-300"
       }`}
     >
       <div className="flex justify-between items-center">
@@ -79,7 +76,7 @@ function InvocationBlock({ invocation, setFilter }: { invocation: any, setFilter
               <ThermometerSnowflake className="w-4 h-4" aria-label="Cold Start" /> Cold Start
             </span>
           )}
-          {hasError && (
+          {invocation.hasError && (
             <StatusTag status="error" onClick={(status) => setFilter(status)} aria-label="Error" />
           )}
           </div>
@@ -98,7 +95,7 @@ function InvocationBlock({ invocation, setFilter }: { invocation: any, setFilter
             <div
               key={idx}
               className={
-                hasError
+                invocation.hasError
                   ? "text-error font-semibold"
                   : ""
               }

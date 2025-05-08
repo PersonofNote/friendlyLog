@@ -3,6 +3,8 @@ import {
   CloudWatchLogsClient,
   FilterLogEventsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
+import { createClient } from "@/utils/supabase/server";
+import { NextResponse } from "next/server";
 
 const sts = new STSClient({
   region: "us-east-1",
@@ -72,4 +74,44 @@ export const getLogs = async (roleArn: string, externalId: string, logGroups: st
   });
   return fetchedLogs;
 
+};
+
+export const getUserAwsData = async () => {
+  const supabase = await createClient();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { error: "Unauthorized" };
+    }
+  
+    const userId = user.id;
+  
+    const { data: awsData, error: awsError } = await supabase
+      .from("friendlylog_aws_connections")
+      .select("role_arn, external_id")
+      .eq("user_id", userId)
+      .single();
+  
+    if (awsError || !awsData?.role_arn || !awsData?.external_id) {
+      return { error: "No AWS connection configured" };
+    }
+  
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("friendlylog_user_settings")
+      .select("tracked_log_groups")
+      .eq("user_id", userId)
+      .single();
+  
+    if (settingsError || !settingsData?.tracked_log_groups) {
+      return { error: "No log groups configured" };
+    }
+  
+    const { role_arn: roleArn, external_id: externalId } = awsData;
+    const logGroups: string[] = settingsData.tracked_log_groups;
+
+    return { roleArn, externalId, logGroups };
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    return { error: "Failed to fetch user data" };
+  }
 };

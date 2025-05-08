@@ -14,7 +14,7 @@ export function groupLogsByInvocation(events: any[]): any[] {
     const firstWordMatch = msg.match(/^\s*(\S+)/);
     const title = firstWordMatch ? firstWordMatch[1] : undefined;
 
-    const hasError = msg.includes("ERROR") || msg.includes("Exception");
+    const lineHasError = msg.includes("ERROR") || msg.includes("Exception");
     
     // Check for cold start events
     if (msg.startsWith('START RequestId:') || msg.startsWith('INIT_START')) {
@@ -34,7 +34,7 @@ export function groupLogsByInvocation(events: any[]): any[] {
         startTime: event.timestamp,
         logs: [event],
         status,
-        hasError: hasError,
+        hasError: lineHasError,
         coldStart: isColdStart,
         coldStartDuration: isColdStart ? coldStartDuration : undefined
       };
@@ -42,6 +42,7 @@ export function groupLogsByInvocation(events: any[]): any[] {
 
     } else if (msg.startsWith('REPORT RequestId:')) {
       // Extract duration from the REPORT line (for all requests, not just cold starts)
+      // TODO: get memory used out of available
       const durationMatch = msg.match(/Duration: ([\d.]+) ms/);
       const durationMs = durationMatch ? parseFloat(durationMatch[1]) : undefined;
       const statusMatch = msg.match(/Status:\s*(\w+)/);
@@ -53,7 +54,7 @@ export function groupLogsByInvocation(events: any[]): any[] {
         currentInvocation.endTime = event.timestamp;
         (currentInvocation as any).durationMs = durationMs;
         (currentInvocation as any).status = status;
-        (currentInvocation as any).hasError = hasError;
+        currentInvocation.hasError = currentInvocation.hasError || lineHasError;
         currentInvocation = null; // End current invocation after REPORT
       } else {
         invocations.push({
@@ -64,7 +65,7 @@ export function groupLogsByInvocation(events: any[]): any[] {
           logs: [event],
           durationMs,
           status,
-          hasError
+          hasError: lineHasError
         });
       }
 
@@ -72,6 +73,7 @@ export function groupLogsByInvocation(events: any[]): any[] {
       // If there is no match (just additional logs), continue grouping in the current invocation
       if (currentInvocation) {
         currentInvocation.logs.push(event);
+        currentInvocation.hasError = currentInvocation.hasError || lineHasError;
       } else {
         invocations.push({
           title,
@@ -79,7 +81,7 @@ export function groupLogsByInvocation(events: any[]): any[] {
           startTime: event.timestamp,
           logs: [event],
           status,
-          hasError: hasError
+          hasError: lineHasError
         });
       }
     }
@@ -92,6 +94,33 @@ export function groupLogsByInvocation(events: any[]): any[] {
   return invocations;
 }
 
+export function getRequestsAndErrorsCount(logs: any[]): { totalRequests: number; errorRequests: number, errorRate: number, healthCheck: string } {
+  let totalRequests = 0;
+  let errorRequests = 0;
+  let healthCheck = "neutral";
+
+  for (const log of logs) {
+    if (log.requestId !== "unknown") {
+      totalRequests++;
+    };
+    if (log.hasError || log.status === "error") {
+      errorRequests++;
+    };
+  }
+
+  const errorRate = errorRequests / totalRequests;
+
+  if (errorRate > 0.5) {
+    healthCheck = "bad";
+  } else if (errorRate < 0.2) {
+    healthCheck = "good";
+  }
+  else {  
+    healthCheck = "neutral";
+  };
+
+  return { totalRequests, errorRequests, errorRate, healthCheck };
+};
 
 
 export const getStatusColor = (status: string) => {

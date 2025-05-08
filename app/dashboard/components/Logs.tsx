@@ -6,6 +6,8 @@
 import { useState } from 'react'
 import { LogViewer } from './LogViewer';
 import { noLogs } from './noLogs';
+import { SummaryCard } from './SummaryCard';
+import { groupLogsByInvocation } from './helpers';
 
 export const Logs = ({ groups, loading, selectedRange, setSelectedRange }: { groups: any, loading: boolean, selectedRange: string, setSelectedRange: (range: string) => void }) => { 
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -49,6 +51,7 @@ export const Logs = ({ groups, loading, selectedRange, setSelectedRange }: { gro
             {groups.length === 0 ? loading ? (<span className="loading loading-ring loading-xs"></span>) : noLogs : null}
             {groups.map((group: any) => {
                 const isOpen = openGroups[group.logGroupName] ?? true;
+                const invocations = groupLogsByInvocation(group.events);
                 return (
                 <div key={group.logGroupName} className="p-4 border-b border-dashed border-gray-200">
                     <button
@@ -61,7 +64,10 @@ export const Logs = ({ groups, loading, selectedRange, setSelectedRange }: { gro
                         </span>
                     </button>
                     {isOpen && (
-                        <LogViewer events={group.events} sortOrder={sortOrder} loading={loading} />
+                        <>
+                            <SummaryCard logs={invocations} />
+                            <LogViewer invocations={invocations} sortOrder={sortOrder} loading={loading} />
+                        </>
                     )}
                 </div>
                     

@@ -1,27 +1,20 @@
-// File: /pages/api/cron/daily-summary.ts
-import { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
-import AWS from 'aws-sdk';
-import { sendDailySummaryEmail } from '@/lib/sendEmail'; // assume you have this helper
+import { EmailTemplate } from '../../../components/EmailTemplate';
+import { NextRequest, NextResponse } from "next/server";
+import { Resend } from 'resend';
+import { getLogs, getUserAwsData } from '../../helpers';
+import { groupLogsByInvocation, getRequestsAndErrorsCount } from '@/app/dashboard/components/helpers';
 
-// Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // need service role for inserting server-side
-);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// AWS SDK client
-const cloudwatchlogs = new AWS.CloudWatchLogs({
-  region: 'us-east-1', // update if needed
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
+export async function POST(req: NextRequest, res: NextResponse) {
+  console.log("POST /api/summarize/daily");
+    if (req.method !== 'POST') return NextResponse.json({ status: 405, message: 'Method not allowed' });
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  try {
-    // 1. Define date range (yesterday)
+    const  { roleArn, externalId, logGroups } = await getUserAwsData();
+    
+    if (!roleArn || !externalId || !logGroups) {
+      return NextResponse.json({ error: "Missing AWS connection or log groups" }, { status: 400 });
+    }
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
@@ -30,73 +23,67 @@ export default async function handler(req, res) {
 
     const startTime = yesterday.getTime();
     const endTime = today.getTime();
+    
 
-    // 2. Query logs from AWS
-    const logGroupName = '/aws/lambda/your-function'; // update as needed
-    const queryString = `
-      fields @timestamp, @message
-      | stats count() as total_requests, countif(@message like /ERROR/) as error_requests
-    `;
+    const logs = await getLogs(roleArn, externalId, logGroups, startTime);
+    console.log("LOGS", logs);
 
-    const startQueryResp = await cloudwatchlogs.startQuery({
-      logGroupName,
-      startTime: Math.floor(startTime / 1000),
-      endTime: Math.floor(endTime / 1000),
-      queryString,
-    }).promise();
-
-    const queryId = startQueryResp.queryId!;
-
-    // Wait for query to complete (polling)
-    let results;
-    while (true) {
-      const queryResp = await cloudwatchlogs.getQueryResults({ queryId }).promise();
-      if (queryResp.status === 'Complete') {
-        results = queryResp.results;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 1000)); // wait 1 sec before retrying
+    if (!logs || logs.length === 0) {
+      return NextResponse.json({ error: "No logs found" }, { status: 404 });
     }
 
-    // 3. Extract counts
-    const totalRequests = parseInt(results[0].find(f => f.field === 'total_requests')?.value || '0');
-    const errorRequests = parseInt(results[0].find(f => f.field === 'error_requests')?.value || '0');
+    const logSummaries = {}
 
-    // 4. Look up yesterday’s summary for comparison
-    const { data: prevSummaries } = await supabase
-      .from('daily_summaries')
-      .select('*')
-      .eq('date', yesterday.toISOString().slice(0, 10))
-      .maybeSingle();
+    for (const logGroup of logs) {
+      if (!logGroup.events || logGroup.events.length === 0) {
+        logSummaries[logGroup.logGroupName] = { total_requests: 0, error_requests: 0 };
+      } else {
+        const groupedLogs = groupLogsByInvocation(logs.events);
+        const results = getRequestsAndErrorsCount(groupedLogs);
+        logSummaries[logGroup.logGroupName] = results;
+      }
+    }
 
-    const prevTotal = prevSummaries?.total_requests || 0;
-    const prevErrors = prevSummaries?.error_requests || 0;
+    /* 
+      const totalRequests = parseInt(results[0].find(f => f.field === 'total_requests')?.value || '0');
+      const errorRequests = parseInt(results[0].find(f => f.field === 'error_requests')?.value || '0');
+  
+      // 4. Look up yesterday’s summary for comparison
+      const { data: prevSummaries } = await supabase
+        .from('daily_summaries')
+        .select('*')
+        .eq('date', yesterday.toISOString().slice(0, 10))
+        .maybeSingle();
+  
+      const prevTotal = prevSummaries?.total_requests || 0;
+      const prevErrors = prevSummaries?.error_requests || 0;
+  
+      const totalChangePct = prevTotal ? (((totalRequests - prevTotal) / prevTotal) * 100).toFixed(1) : 'N/A';
+      const errorChangeCount = errorRequests - prevErrors;
+  
+      // 5. Save today’s summary
+      await supabase.from('daily_summaries').insert([{
+        user_id: 'some-user-id', // You'd loop per user in production
+        date: yesterday.toISOString().slice(0, 10),
+        total_requests: totalRequests,
+        error_requests: errorRequests,
+      }]);
+      */
 
-    const totalChangePct = prevTotal ? (((totalRequests - prevTotal) / prevTotal) * 100).toFixed(1) : 'N/A';
-    const errorChangeCount = errorRequests - prevErrors;
-
-    // 5. Save today’s summary
-    await supabase.from('daily_summaries').insert([{
-      user_id: 'some-user-id', // You'd loop per user in production
-      date: yesterday.toISOString().slice(0, 10),
-      total_requests: totalRequests,
-      error_requests: errorRequests,
-    }]);
-
-    // 6. Send the summary email
-    await sendDailySummaryEmail({
-      to: 'user@example.com', // dynamically set per user in production
-      date: yesterday.toISOString().slice(0, 10),
-      totalRequests,
-      errorRequests,
-      totalChangePct,
-      errorChangeCount,
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Acme <onboarding@resend.dev>',
+      to: ['habelexmail@gmail.com'],
+      subject: 'Hello world',
+      react: EmailTemplate({ logSummaries }),
     });
 
-    res.status(200).json({ message: 'Summary saved and email sent.' });
+    if (error) {
+      return Response.json({ error }, { status: 500 });
+    }
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to process daily summary.' });
+    return Response.json(data);
+  } catch (error) {
+    return Response.json({ error }, { status: 500 });
   }
 }
