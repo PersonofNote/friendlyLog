@@ -18,14 +18,6 @@ const sts = new STSClient({
   },
 });
 
-// TODO: Evaluate effectiveness here
-export function unwrapResult<T>(result: { data: T } | { error: string }): T {
-  if ('error' in result) {
-    throw new Error(result.error);
-  }
-  return result.data;
-}
-
 export async function withAssumedRole<T>(
   roleArn: string,
   externalId: string,
