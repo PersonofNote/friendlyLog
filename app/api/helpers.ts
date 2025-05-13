@@ -31,7 +31,7 @@ export async function withAssumedRole<T>(
     RoleArn: roleArn,
     RoleSessionName: `FriendlyLog-session`,
     ExternalId: externalId,
-    DurationSeconds: 900, // 15 min
+    DurationSeconds: 900
   });
 
   const response = await sts.send(command);
