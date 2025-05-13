@@ -4,6 +4,11 @@ import {
   FilterLogEventsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
 import { createClient } from "@/utils/supabase/server";
+import { groupLogsByInvocation, getRequestsAndErrorsCount } from '@/app/dashboard/components/helpers';
+
+
+type UserAwsDataResult = {  userId?: string, roleArn?: string, externalId?: string, logGroups?: string[], error?: string }
+
 
 const sts = new STSClient({
   region: "us-east-1",
@@ -12,6 +17,14 @@ const sts = new STSClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
+
+// TODO: Evaluate effectiveness here
+export function unwrapResult<T>(result: { data: T } | { error: string }): T {
+  if ('error' in result) {
+    throw new Error(result.error);
+  }
+  return result.data;
+}
 
 export async function withAssumedRole<T>(
   roleArn: string,
@@ -75,20 +88,22 @@ export const getLogs = async (roleArn: string, externalId: string, logGroups: st
 
 };
 
-export const getUserAwsData = async () => {
+export const getUserAwsData = async (userId?: string): Promise<UserAwsDataResult> => {
   const supabase = await createClient();
+  let effectiveUserId = userId;
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: "Unauthorized" };
+    if (!effectiveUserId) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        return { error: "Unauthorized" };
+      }
+      effectiveUserId = user.id;
     }
-  
-    const userId = user.id;
   
     const { data: awsData, error: awsError } = await supabase
       .from("friendlylog_aws_connections")
       .select("role_arn, external_id")
-      .eq("user_id", userId)
+      .eq("user_id", effectiveUserId)
       .single();
   
     if (awsError || !awsData?.role_arn || !awsData?.external_id) {
@@ -98,7 +113,7 @@ export const getUserAwsData = async () => {
     const { data: settingsData, error: settingsError } = await supabase
       .from("friendlylog_user_settings")
       .select("tracked_log_groups")
-      .eq("user_id", userId)
+      .eq("user_id", effectiveUserId)
       .single();
   
     if (settingsError || !settingsData?.tracked_log_groups) {
@@ -108,9 +123,126 @@ export const getUserAwsData = async () => {
     const { role_arn: roleArn, external_id: externalId } = awsData;
     const logGroups: string[] = settingsData.tracked_log_groups;
 
-    return { roleArn, externalId, logGroups };
+    return { userId: effectiveUserId, roleArn, externalId, logGroups };
   } catch (error) {
     console.error("Error fetching user data:", error);
     return { error: "Failed to fetch user data" };
   }
+};
+
+// eslint-disable-next-line
+export async function saveSummary(userId: string, summary: any) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from('daily_summaries').insert([
+    {
+      user_id: userId,
+      date: new Date(),
+      summary: summary,
+    },
+  ]);
+
+  if (error) {
+    throw new Error(`Failed to save summary: ${error.message}`);
+  }
+};
+
+export const getSummary = async(userId: string, date: Date) => {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('friendlylog_daily_summaries')
+    .select('user_id, date, tracked_log_groups')
+    .eq('user_id', userId)
+    .eq('date', date)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching summary:', error);
+    return null;
+  }
+
+  return data; 
+};
+
+// eslint-disable-next-line
+export const processSummary = (userId: string, logs: any, yesterdaySummary?: any) => {
+  // TODO: Implement comparison to yesterday's summary above
+  const dashboardLink = '/';
+  const totalLogs = logs.map(logGroup => logGroup.events).flat();
+  const groupedLogs = groupLogsByInvocation(totalLogs);
+  const { totalRequests, errorRequests, errorRate, healthCheck } = getRequestsAndErrorsCount(groupedLogs);
+
+  saveSummary(userId, { style: 'mvp', totalRequests, errorRequests, errorRate, healthCheck});
+
+      /* TODO: potentially add individual log groups instead of just all of them
+    const logSummaries = {}
+
+    for (const logGroup of logs) {
+      if (!logGroup.events || logGroup.events.length === 0) {
+        logSummaries[logGroup.logGroupName] = { total_requests: 0, error_requests: 0 };
+      } else {
+        const groupedLogs = groupLogsByInvocation(logs.events);
+        const results = getRequestsAndErrorsCount(groupedLogs);
+        logSummaries[logGroup.logGroupName] = results;
+      }
+    }
+    */
+
+  const noLogs = `
+    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; max-width: 600px; margin: auto; padding: 20px;">
+    <h2 style="color: #4CAF50;">📊 FriendlyLog Daily Summary</h2>
+
+    ⚠️ There were no requests in the last 24 hours. If this is unexpected, please check your log groups and ensure they are correctly configured.
+
+    <p>
+      🔎 <a href="" style="color: #4CAF50; text-decoration: none; font-weight: bold;">
+        View full logs & details
+      </a>
+    </p>
+
+    <p style="margin-top: 30px">
+      Thanks for using FriendlyLog — keeping your AWS chaos under control.<br>
+      - The FriendlyLog Team
+    </p>
+  </div>
+  `;
+
+  const logStats = `  
+    <ul style="list-style: none; padding: 0;">
+      <li>🚀 <strong>Total Requests: </strong>${totalRequests}</li>
+      <li>❌ <strong>Total Errors:</strong> ${errorRequests}</li>
+      <li>⚠️ <strong>Error Rate:</strong> ${errorRate * 100}%
+      <li>✅ <strong>Health Check:</strong> ${healthCheck}</li>
+    </ul>`;
+
+          /* TODO: implement later
+    const topErrors = `<h3 style="color: #4CAF50;">Top Errors Today:</h3>
+    <ol>
+      <li><code>DatabaseTimeoutError</code> — 152 occurrences</li>
+      <li><code>AuthTokenInvalid</code> — 98 occurrences</li>
+      <li><code>PaymentFailedError</code> — 47 occurrences</li>
+    </ol>`;
+    */
+
+    const html = `
+    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; max-width: 600px; margin: auto; padding: 20px;">
+      <h2 style="color: #4CAF50;">📊 Today's Summary</h2>
+
+      ${totalLogs.length < 1 ? noLogs : logStats}
+
+      <p>
+        🔎 <a href="${dashboardLink}">
+          <strong>View full logs & details</strong>
+        </a>
+      </p>
+  
+      <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
+        Thanks for using FriendlyLog — keeping your AWS chaos under control.<br>
+        - The FriendlyLog Team
+      </p>
+    </div>
+  `;
+
+  return html
 };
