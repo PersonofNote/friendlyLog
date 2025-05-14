@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from 'resend';
-import { getLogs, getUserAwsData, unwrapResult, processSummary } from '../../helpers';
+import { getLogs, getUserAwsData, processSummary } from '../../helpers';
+import { createClient } from "@/utils/supabase/server";
 
 
 
@@ -9,8 +10,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(req: NextRequest) {
   console.log("POST /api/summarize/daily");
     if (req.method !== 'POST') return NextResponse.json({ status: 405, message: 'Method not allowed' });
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
-    const  { userId, roleArn, externalId, logGroups } = await getUserAwsData();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = user.id;
+
+    const  { roleArn, externalId, logGroups } = await getUserAwsData();
     
     // Do I still need this with the unwrap result call?
     if (!roleArn || !externalId || !logGroups) {
@@ -40,9 +49,9 @@ export async function POST(req: NextRequest) {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'Acme <onboarding@resend.dev>',
-        to: user.email],
-        subject: `📊 FriendlyLog Daily Summary — ${date}`,
+        from: 'Friendlylog <noreply@habelex.com>',
+        to: user.email || 'noreply@habelex.com',
+        subject: `📧 FriendlyLog Daily Summary — ${date}`,
         html: html,
       });
 

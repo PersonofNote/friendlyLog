@@ -80,22 +80,21 @@ export const getLogs = async (roleArn: string, externalId: string, logGroups: st
 
 };
 
-export const getUserAwsData = async (userId?: string): Promise<UserAwsDataResult> => {
+export const getUserAwsData = async (): Promise<UserAwsDataResult> => {
   const supabase = await createClient();
-  let effectiveUserId = userId;
+
   try {
-    if (!effectiveUserId) {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         return { error: "Unauthorized" };
       }
-      effectiveUserId = user.id;
-    }
+
+    const userId = user.id;
   
     const { data: awsData, error: awsError } = await supabase
       .from("friendlylog_aws_connections")
       .select("role_arn, external_id")
-      .eq("user_id", effectiveUserId)
+      .eq("user_id", userId)
       .single();
   
     if (awsError || !awsData?.role_arn || !awsData?.external_id) {
@@ -105,7 +104,7 @@ export const getUserAwsData = async (userId?: string): Promise<UserAwsDataResult
     const { data: settingsData, error: settingsError } = await supabase
       .from("friendlylog_user_settings")
       .select("tracked_log_groups")
-      .eq("user_id", effectiveUserId)
+      .eq("user_id", userId)
       .single();
   
     if (settingsError || !settingsData?.tracked_log_groups) {
@@ -115,7 +114,7 @@ export const getUserAwsData = async (userId?: string): Promise<UserAwsDataResult
     const { role_arn: roleArn, external_id: externalId } = awsData;
     const logGroups: string[] = settingsData.tracked_log_groups;
 
-    return { userId: effectiveUserId, roleArn, externalId, logGroups };
+    return { userId, roleArn, externalId, logGroups };
   } catch (error) {
     console.error("Error fetching user data:", error);
     return { error: "Failed to fetch user data" };
@@ -124,6 +123,8 @@ export const getUserAwsData = async (userId?: string): Promise<UserAwsDataResult
 
 // eslint-disable-next-line
 export async function saveSummary(userId: string, summary: any) {
+  console.log("SAVING SUMMARY")
+  console.log(summary)
   const supabase = await createClient();
 
   const { error } = await supabase.from('daily_summaries').insert([
@@ -144,7 +145,7 @@ export const getSummary = async(userId: string, date: Date) => {
 
   const { data, error } = await supabase
     .from('friendlylog_daily_summaries')
-    .select('user_id, date, tracked_log_groups')
+    .select('summary')
     .eq('user_id', userId)
     .eq('date', date)
     .maybeSingle();
@@ -157,15 +158,39 @@ export const getSummary = async(userId: string, date: Date) => {
   return data; 
 };
 
+export const compareSummaries = (today, yesterday) => {
+    if (!today || !yesterday) {
+      return {
+        totalDiff: null,
+        errorDiff: null
+      };
+    }
+  
+    const totalDiff = percentChange(today.totalRequests, yesterday.totalRequests);
+    const errorDiff = percentChange(today.errorRequests, yesterday.errorRequests);
+  
+    return { totalDiff, errorDiff };
+}
+  
+  function percentChange(todayValue, yesterdayValue) {
+    if (yesterdayValue === 0) return todayValue === 0 ? 0 : 100;
+    return ((todayValue - yesterdayValue) / yesterdayValue) * 100;
+  }
+  
+
 // eslint-disable-next-line
 export const processSummary = (userId: string, logs: any, yesterdaySummary?: any) => {
+  console.log("PROCESSING SUMMARY")
+  console.log(logs)
   // TODO: Implement comparison to yesterday's summary above
   const dashboardLink = '/';
+
   const totalLogs = logs.map(logGroup => logGroup.events).flat();
   const groupedLogs = groupLogsByInvocation(totalLogs);
   const { totalRequests, errorRequests, errorRate, healthCheck } = getRequestsAndErrorsCount(groupedLogs);
 
-  saveSummary(userId, { style: 'mvp', totalRequests, errorRequests, errorRate, healthCheck});
+
+  saveSummary(userId, { style: 'mvp', totalRequests, errorRequests, healthCheck});
 
       /* TODO: potentially add individual log groups instead of just all of them
     const logSummaries = {}
@@ -183,7 +208,6 @@ export const processSummary = (userId: string, logs: any, yesterdaySummary?: any
 
   const noLogs = `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; max-width: 600px; margin: auto; padding: 20px;">
-    <h2 style="color: #4CAF50;">📊 FriendlyLog Daily Summary</h2>
 
     ⚠️ There were no requests in the last 24 hours. If this is unexpected, please check your log groups and ensure they are correctly configured.
 
@@ -219,7 +243,7 @@ export const processSummary = (userId: string, logs: any, yesterdaySummary?: any
 
     const html = `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; max-width: 600px; margin: auto; padding: 20px;">
-      <h2 style="color: #4CAF50;">📊 Today's Summary</h2>
+      <h2 style="color: #4CAF50;">Today's Summary</h2>
 
       ${totalLogs.length < 1 ? noLogs : logStats}
 
