@@ -1,0 +1,1 @@
+export type FriendlyLogUser = {id: number, created_at: string, user_id: string, tracked_log_groups: string[], external_id: string, subscription_tier: number, onboarded: boolean, summaries_enabled: boolean}

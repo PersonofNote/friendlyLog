@@ -1,18 +1,71 @@
-// DUMMY DATA
+'use client';
+import {  getRequestsAndErrorsCount } from "./helpers";
+import { useState, useEffect } from "react";
 
-export const SummaryCard = () => {
-    return (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Logs = {[key: string]: any}[];
+
+export const SummaryCard = ({logs}: {logs: Logs}) => {
+    const [errorRequests, setErrorRequests] = useState(0);
+    const [totalRequests, setTotalRequests] = useState(0);
+    const [healthCheck, setHealthCheck] = useState("neutral");
+    const [ errorRate, setErrorRate] = useState(0);
+
+    useEffect(() => {
+        if (!logs) return;
+        const { totalRequests, errorRequests, errorRate, healthCheck } = getRequestsAndErrorsCount(logs);
+        setTotalRequests(totalRequests);
+        setErrorRequests(errorRequests);
+        setHealthCheck(healthCheck);
+        setErrorRate(errorRate);
+    }, [logs]);
+
+    const healthMessage: {[key: string]: {color: string, message: string}} = {
+        "good": {
+            color: "success",
+            message: "System is healthy"
+        },
+        "neutral": {
+            color: "warning",
+            message: "System is neutral"
+        },
+        "bad": {
+            color: "error",
+            message: "HIGH ERROR RATE DETECTED"
+        }
+    };
+
+    /* Removing manual email for now; may restore later for on-demand report generation
+    const handleEmail = async () => {
+        console.log("Handle emails")
+        const response = await fetch('/api/summarize/daily', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ logs }),
+        });
+        const data = await response.json();
+        if (data.error) {       
+            console.error('Error sending email:', data.error);
+        }
+        if (data.success) {
+            console.log('Email sent successfully:', data);
+        }
+    };
+    */
+
+    return logs.length > 0 && (
         <div className="bg-base-200 p-6">
-
-            <h2 className="text-xl font-semibold">System Health Overview</h2>
+            <h2 className="text-xl font-semibold">System Summary</h2>
             <ul className="list-disc pl-5">
-            <li>Uptime: 100%</li>
-            <li>Average Response Time: 248ms <span className="text-green-600">(↓ 12% from yesterday)</span></li>
-            <li>Error Rate: 0.8% <span className="text-yellow-600">(↑ slight bump)</span></li>
-            <li>Deployments: 1 (v2.1.7 at 3:03 PM)</li>
+            <li>Requests: {totalRequests}</li>
+            <li>Errors: {errorRequests} ({errorRate * 100}%)</li>
             </ul>
-
-            <button className="btn btn-primary">View Details</button>
+            {healthCheck && (
+                <span className={`alert alert-outline alert-${healthMessage[healthCheck as string].color} my-4 w-75`}>{healthMessage[healthCheck].message}</span>
+            )
+            }
         </div>
     )
 }
