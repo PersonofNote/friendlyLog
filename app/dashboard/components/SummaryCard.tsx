@@ -35,6 +35,7 @@ export const SummaryCard = ({logs}: {logs: Logs}) => {
         }
     };
 
+    /* Removing manual email for now; may restore later for on-demand report generation
     const handleEmail = async () => {
         console.log("Handle emails")
         const response = await fetch('/api/summarize/daily', {
@@ -52,6 +53,7 @@ export const SummaryCard = ({logs}: {logs: Logs}) => {
             console.log('Email sent successfully:', data);
         }
     };
+    */
 
     return logs.length > 0 && (
         <div className="bg-base-200 p-6">

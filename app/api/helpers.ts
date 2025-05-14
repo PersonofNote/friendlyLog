@@ -17,7 +17,8 @@ type Summary = {
 }
 type LogGroup = {
   logGroupName: string;
-  // eslint-disable-next-line TODO: type this correctly for the events
+  // TODO: type this correctly for the events
+  // eslint-disable-next-line
   events: any[];
 }
 
