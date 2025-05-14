@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
 
     const  { roleArn, externalId, logGroups } = await getUserAwsData();
     
-    // Do I still need this with the unwrap result call?
     if (!roleArn || !externalId || !logGroups) {
       return NextResponse.json({ error: "Missing AWS connection or log groups" }, { status: 400 });
     }
@@ -42,8 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No logs found" }, { status: 404 });
     }
   
-    // TODO: Implement comparison to yesterday
-    const html = processSummary(userId, logs);
+    const html = await processSummary(userId, logs);
     const date = new Date().toLocaleDateString();
 
 

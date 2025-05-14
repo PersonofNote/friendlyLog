@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getSummary, getLogs, getUserAwsData, processSummary } from '../helpers';     
+import { getSummary, getLogs, processSummary } from '../helpers';     
 import { Resend } from 'resend'; 
 import { FriendlyLogUser } from '@/utils/types';
 
@@ -9,7 +9,7 @@ const WAIT_BETWEEN_BATCHES_MS = 200;
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const senderEmail = 'FriendlyLog Dev Team <summaries@friendlylog.habelex.com>'
+const senderEmail = 'FriendlyLog <noreply@habelex.com>'
 
 const sendEmail = async (email: string, html: string, date: Date) => {
     try {
@@ -45,9 +45,6 @@ if (!supabaseServiceKey) {
     .select('*')
     .eq('summaries_enabled', true);
 
-  console.log("USERS")
-  console.log(users)
-
   if (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
@@ -64,10 +61,18 @@ if (!supabaseServiceKey) {
             console.log("User not found")
         }
         try {
-          const yesterday = new Date();
-          yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-        
-          const startTime = yesterday.getTime();
+          const now = new Date();
+          
+          const yester = new Date(now.getDate() - 1);
+          const yesterday = yester.toISOString().split("T")[0];
+          
+          const todayMidnight = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            0, 0, 0, 0
+          );
+
           const userId = user.user_id;
           console.log(user.user_id);
 
@@ -110,23 +115,29 @@ if (!supabaseServiceKey) {
             return;
           };
           
-          const yesterdaySummary = await getSummary(userId, yesterday);
-          console.log("YESTERDAY SUMMARY")
-          console.log(yesterdaySummary)
+          const yesterdaySummary = await getSummary(userId, yesterday as unknown as Date);
 
-          const logs = await getLogs(roleArn, externalId, logGroups, startTime)
-          console.log("LOGS")
-          console.log(logs)
+          const logs = await getLogs(roleArn, externalId, logGroups, todayMidnight.getTime())
 
-          const summary = processSummary(userId, logs, yesterdaySummary);
+          const summaryHtml = await processSummary(userId, logs, yesterdaySummary);
 
-      
-          console.log("SUMMARY")
-          console.log(summary)
+          try {
+            const { data, error } = await resend.emails.send({
+              from: senderEmail,
+              to: email.email,
+              subject: `📊 FriendlyLog Daily Summary — ${new Date()}`,
+              html: summaryHtml,
+            });
+            console.log("Email sent to", email.email);
+            if (error) {
+              return Response.json({ error }, { status: 500 });
+            }
+        
+            return Response.json(data);
+          } catch (error) {
+            return Response.json({ error }, { status: 500 });
+          }
 
-          // await sendEmail(email, summary, new Date());
-
-          console.log(`Processed user ${email}`);
         } catch (err) {
           console.error(`Failed for user ${user}:`, err);
         }

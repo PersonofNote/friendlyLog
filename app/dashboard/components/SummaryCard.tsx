@@ -64,7 +64,6 @@ export const SummaryCard = ({logs}: {logs: Logs}) => {
                 <span className={`alert alert-outline alert-${healthMessage[healthCheck as string].color} my-4 w-75`}>{healthMessage[healthCheck].message}</span>
             )
             }
-            <button onClick={handleEmail} className="btn btn-primary">Email Summary</button>
         </div>
     )
 }

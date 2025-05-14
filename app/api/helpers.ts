@@ -5,10 +5,21 @@ import {
 } from "@aws-sdk/client-cloudwatch-logs";
 import { createClient } from "@/utils/supabase/server";
 import { groupLogsByInvocation, getRequestsAndErrorsCount } from '@/app/dashboard/components/helpers';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 
 
 type UserAwsDataResult = {  userId?: string, roleArn?: string, externalId?: string, logGroups?: string[], error?: string }
-
+type Summary = {
+  totalRequests: number;
+  errorRequests: number;
+  errorRate?: number;
+  healthCheck?: string;
+}
+type LogGroup = {
+  logGroupName: string;
+  // eslint-disable-next-line TODO: type this correctly for the events
+  events: any[];
+}
 
 const sts = new STSClient({
   region: "us-east-1",
@@ -123,11 +134,10 @@ export const getUserAwsData = async (): Promise<UserAwsDataResult> => {
 
 // eslint-disable-next-line
 export async function saveSummary(userId: string, summary: any) {
-  console.log("SAVING SUMMARY")
-  console.log(summary)
-  const supabase = await createClient();
+  
+  const supabase = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-  const { error } = await supabase.from('daily_summaries').insert([
+  const { error } = await supabase.from('friendlylog_daily_summaries').insert([
     {
       user_id: userId,
       date: new Date(),
@@ -158,7 +168,8 @@ export const getSummary = async(userId: string, date: Date) => {
   return data; 
 };
 
-export const compareSummaries = (today, yesterday) => {
+
+export const compareSummaries = (today: Summary, yesterday: Summary) => {
     if (!today || !yesterday) {
       return {
         totalDiff: null,
@@ -172,25 +183,25 @@ export const compareSummaries = (today, yesterday) => {
     return { totalDiff, errorDiff };
 }
   
-  function percentChange(todayValue, yesterdayValue) {
+  function percentChange(todayValue: number, yesterdayValue: number) {
     if (yesterdayValue === 0) return todayValue === 0 ? 0 : 100;
     return ((todayValue - yesterdayValue) / yesterdayValue) * 100;
   }
   
 
 // eslint-disable-next-line
-export const processSummary = (userId: string, logs: any, yesterdaySummary?: any) => {
-  console.log("PROCESSING SUMMARY")
-  console.log(logs)
-  // TODO: Implement comparison to yesterday's summary above
+export const processSummary = async(userId: string, logs: any, yesterdaySummary?: any) => {
+
   const dashboardLink = '/';
 
-  const totalLogs = logs.map(logGroup => logGroup.events).flat();
+  const totalLogs = logs.map((logGroup: LogGroup) => logGroup.events).flat();
   const groupedLogs = groupLogsByInvocation(totalLogs);
   const { totalRequests, errorRequests, errorRate, healthCheck } = getRequestsAndErrorsCount(groupedLogs);
 
+  const comparison = compareSummaries({ totalRequests, errorRequests }, yesterdaySummary?.summary);
+  
 
-  saveSummary(userId, { style: 'mvp', totalRequests, errorRequests, healthCheck});
+  await saveSummary(userId, { style: 'mvp', totalRequests, errorRequests, healthCheck});
 
       /* TODO: potentially add individual log groups instead of just all of them
     const logSummaries = {}
@@ -226,8 +237,8 @@ export const processSummary = (userId: string, logs: any, yesterdaySummary?: any
 
   const logStats = `  
     <ul style="list-style: none; padding: 0;">
-      <li>🚀 <strong>Total Requests: </strong>${totalRequests}</li>
-      <li>❌ <strong>Total Errors:</strong> ${errorRequests}</li>
+      <li>🚀 <strong>Total Requests: </strong>${totalRequests} ${!!comparison && !!comparison.totalDiff && `(${comparison.totalDiff}% from yesterday)`}</li> 
+      <li>❌ <strong>Total Errors:</strong> ${errorRequests} ${!!comparison && !!comparison.errorDiff && `(${comparison.errorDiff}% from yesterday)`}</li>
       <li>⚠️ <strong>Error Rate:</strong> ${errorRate * 100}%
       <li>✅ <strong>Health Check:</strong> ${healthCheck}</li>
     </ul>`;
