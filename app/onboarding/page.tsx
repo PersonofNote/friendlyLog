@@ -283,7 +283,7 @@ export default function OnboardingWizard() {
                     <div className="mb-4 text-sm text-gray-600">Step {step + 1} of {steps.length}</div>
                     <h2 className="text-lg font-medium mb-3"><strong>{steps[step].title}</strong></h2>
                     {steps[step].body}
-                    {error && <div className="text-red-500 mt-2">{error}</div>}
+                    {error && <div className="text-error mt-2">{error}</div>}
                     <div className="mt-6 flex justify-between">
                         <button
                             onClick={() => setStep((s) => Math.max(s - 1, 0))}
@@ -303,7 +303,7 @@ export default function OnboardingWizard() {
                 <div className="text-xl font-semibold mb-2">Connect FriendlyLog to your AWS account</div>
                 <ol className="list-decimal ml-5">{stepsAsList}</ol>
                 {message && <div className="text-green-500 mt-2">{message}</div>}
-                {error && <div className="text-red-500 mt-2">{error}</div>}
+                {error && <div className="text-error mt-2">{error}</div>}
             </div>)}
             <button className="btn btn-sm btn-soft justify-self-end" onClick={() => setShowWizard(!showWizard)}>Show as {showWizard ? 'list' : 'wizard'}</button>
         </div>

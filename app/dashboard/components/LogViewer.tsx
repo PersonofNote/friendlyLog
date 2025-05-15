@@ -7,7 +7,8 @@ import { noLogs } from "./noLogs";
 
 export function LogViewer({ invocations, sortOrder, loading }: { invocations: any[], sortOrder: 'asc' | 'desc', loading: boolean }) {
   
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<string[]>([]);
+
   const [sortedLogs, setSortedLogs] = useState<any[]>(invocations);
         
   const sortLogs = () => {
@@ -19,9 +20,17 @@ export function LogViewer({ invocations, sortOrder, loading }: { invocations: an
     setSortedLogs(sorted);
 };
 
-  const filteredLogs = filter
+const toggleFilter = (filter: string) => {
+  setFilter((prev) =>
+    prev.includes(filter)
+      ? prev.filter((f) => f !== filter)
+      : [...prev, filter]
+  );
+};
+
+  const filteredLogs = filter.length > 0
   ? sortedLogs.filter((invocation: any) =>
-      filter === "all" ? invocation : invocation.status?.includes(filter)
+      invocation.filters?.some((f: string) => filter.includes(f))
     )
   : sortedLogs;
 
@@ -32,15 +41,20 @@ export function LogViewer({ invocations, sortOrder, loading }: { invocations: an
 
   return loading ?  (<span className="loading loading-ring loading-xs"></span>)   : (
     <div>
-        {filter !== "all" && <div className="flex items-center gap-2"><Funnel className="w-4 h-4" aria-label="Filter" />| <StatusTag status={filter} onClick={() => setFilter("all")} aria-label="Clear filter"/></div>}
+        {filter.length !== 0 && <div className="flex items-center gap-2 py-2">
+          <Funnel className="w-4 h-4" aria-label="Filter" />| 
+          {filter.map((f, i) => <StatusTag key={`filter-${f}-${i}`} status={f} onClick={(f) => toggleFilter(f)} aria-label={`Clear filter ${f}`}/>)
+          }
+      </div>
+          }
       {filteredLogs.length === 0 ? noLogs : filteredLogs.map((invocation, idx) => (
-        <InvocationBlock key={idx} invocation={invocation} setFilter={setFilter} />
+        <InvocationBlock key={idx} invocation={invocation} toggleFilter={toggleFilter} />
       ))}
     </div>
   );
 }
 
-function InvocationBlock({ invocation, setFilter }: { invocation: any, setFilter: (filter: string) => void }) {
+function InvocationBlock({ invocation, toggleFilter }: { invocation: any, toggleFilter: (filter: string) => void }) {
   const [open, setOpen] = useState(false);
 
   const logTime = new Date(invocation.startTime).toLocaleString(undefined, {
@@ -55,7 +69,7 @@ function InvocationBlock({ invocation, setFilter }: { invocation: any, setFilter
   return (
     <div
       className={`border rounded p-2 my-2 ${
-         invocation.hasError || invocation.status === "error" || invocation.status === "fail" || invocation.status === "failed" || invocation.status === "errordetails" ? "border-red-500" : "border-gray-300"
+         invocation.hasError || invocation.status === "error" || invocation.status === "fail" || invocation.status === "failed" || invocation.status === "errordetails" ? "border-error" : "border-base-300"
       }`}
     >
       <div className="flex justify-between items-center">
@@ -63,26 +77,23 @@ function InvocationBlock({ invocation, setFilter }: { invocation: any, setFilter
           <span className="text-sm font-mono lg:w-40 inline-block">{logTime}</span>
           <div className="flex items-center gap-2 flex-grow">
           {invocation.status && (
-            <StatusTag status={invocation.status} onClick={(status) => setFilter(status)} aria-label="Status" />
+            <StatusTag status={invocation.status} onClick={(status) => toggleFilter(status)} aria-label="Status" />
           )}
           {invocation.durationMs && (
-            <span className="ml-2 text-sm text-gray-600 flex gap-1 items-center">
+            <span className="ml-2 text-sm text-content flex gap-1 items-center">
               <Timer className="w-4 h-4" aria-label="Duration" /> {invocation.durationMs} ms
             </span>
           )}
-          {/* TODO: consider adding coldStart to status? Depends on grouping. Possibly make status an array of tags */}
           {invocation.coldStart && (
-            <span className="ml-2 text-sm text-blue-600 flex gap-1 items-center">
-              <ThermometerSnowflake className="w-4 h-4" aria-label="Cold Start" /> Cold Start
-            </span>
+                <StatusTag status={'coldstart'} onClick={(status) => toggleFilter('coldstart')} aria-label="Cold Start" />
           )}
           {invocation.hasError && (
-            <StatusTag status="error" onClick={(status) => setFilter(status)} aria-label="Error" />
+            <StatusTag status="error" onClick={(status) => toggleFilter(status)} aria-label="Error" />
           )}
           </div>
         </div>
         <div className="tooltip" data-tip="Expand/Collapse"><button
-          className="btn btn-accent btn-xs btn-outline"
+          className="btn btn-primary btn-xs btn-outline"
           onClick={() => setOpen(!open)}
         >
           {open ? <ChevronUp /> : <ChevronDown />}

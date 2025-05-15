@@ -57,13 +57,13 @@ export const SummaryCard = ({logs}: {logs: Logs}) => {
 
     return logs.length > 0 && (
         <div className="bg-base-200 p-6">
-            <h2 className="text-xl font-semibold">System Summary</h2>
-            <ul className="list-disc pl-5">
+            <h2 className="text-xl text-base-content font-semibold">System Summary</h2>
+            <ul className="list-disc pl-5 text-base-content">
             <li>Requests: {totalRequests}</li>
             <li>Errors: {errorRequests} ({errorRate * 100}%)</li>
             </ul>
             {healthCheck && (
-                <span className={`alert alert-outline alert-${healthMessage[healthCheck as string].color} my-4 w-75`}>{healthMessage[healthCheck].message}</span>
+                <span className={`alert alert-soft m-4 text-base text-${healthMessage[healthCheck as string].color}-content alert-${healthMessage[healthCheck as string].color} w-75`}>{healthMessage[healthCheck].message}</span>
             )
             }
         </div>

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CheckCircle, XCircle, Timer, AlertTriangle, Tag, BookText } from "lucide-react";
+import { CheckCircle, XCircle, Timer, AlertTriangle, Tag, BookText, ThermometerSnowflake } from "lucide-react";
 
 export function groupLogsByInvocation(events: any[]): any[] {
   const invocations: any[] = [];
@@ -36,7 +36,12 @@ export function groupLogsByInvocation(events: any[]): any[] {
         status,
         hasError: lineHasError,
         coldStart: isColdStart,
-        coldStartDuration: isColdStart ? coldStartDuration : undefined
+        coldStartDuration: isColdStart ? coldStartDuration : undefined,
+        filters: [
+          ...(status ? [status] : []),
+          ...(lineHasError ? ['error'] : []),
+          ...(isColdStart ? ['coldstart'] : []),
+        ]
       };
       invocations.push(currentInvocation);
 
@@ -55,6 +60,11 @@ export function groupLogsByInvocation(events: any[]): any[] {
         (currentInvocation as any).durationMs = durationMs;
         (currentInvocation as any).status = status;
         currentInvocation.hasError = currentInvocation.hasError || lineHasError;
+        currentInvocation.filters = [
+          ...(status ? [status] : []),
+          ...(currentInvocation.hasError ? ['error'] : []),
+          ...(currentInvocation.coldStart ? ['coldstart'] : [])
+        ];
         currentInvocation = null; // End current invocation after REPORT
       } else {
         invocations.push({
@@ -65,7 +75,11 @@ export function groupLogsByInvocation(events: any[]): any[] {
           logs: [event],
           durationMs,
           status,
-          hasError: lineHasError
+          hasError: lineHasError,
+          filters: [
+            ...(status ? [status] : []),
+            ...(lineHasError ? ['error'] : [])
+          ]
         });
       }
 
@@ -81,7 +95,11 @@ export function groupLogsByInvocation(events: any[]): any[] {
           startTime: event.timestamp,
           logs: [event],
           status,
-          hasError: lineHasError
+          hasError: lineHasError,
+          filters: [
+            ...(status ? [status] : []),
+            ...(lineHasError ? ['error'] : [])
+          ]
         });
       }
     }
@@ -126,19 +144,23 @@ export function getRequestsAndErrorsCount(logs: any[]): { totalRequests: number;
 export const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "success":
-        return "text-green-600";
+        return "text-success";
       case "timeout":
-        return "text-orange-500";
+        return "text-warning";
       case "error":
       case "fail":
       case "failed":
       case "errordetails":
-        return "text-red-600";
+        return "text-error";
       case "throttled":
       case "outofmemory":
-        return "text-yellow-500";
+        return "text-warning";
+      case "coldstart":
+        return "text-info";
+      case "unknown":
+        return "text-base-300";
       default:
-        return "text-gray-600";
+        return "text-base-600";
     }
   };
   
@@ -157,6 +179,8 @@ export const getStatusIcon = (status: string) => {
       case "throttled":
       case "outofmemory":
         return <AlertTriangle className="w-4 h-4" />;
+      case "coldstart":
+        return <ThermometerSnowflake className="w-4 h-4" aria-label="Cold Start" />
       default:
         return <Tag className="w-4 h-4" />;
     }
@@ -177,6 +201,8 @@ export const getStatusLabel = (status: string) => {
       case "throttled":
       case "outofmemory":
         return "Throttled";
+      case "coldstart":
+        return "Cold Start";
       default:
         return "Unknown";
     }

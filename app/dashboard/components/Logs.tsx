@@ -10,6 +10,15 @@ import { SummaryCard } from './SummaryCard';
 import { groupLogsByInvocation } from './helpers';
 
 export const Logs = ({ groups, loading, selectedRange, setSelectedRange }: { groups: any, loading: boolean, selectedRange: string, setSelectedRange: (range: string) => void }) => { 
+
+    const TIMEFRAME_KEY = 'friendlylog-timeframe';
+
+    const handleChange = (e) => {
+        setSelectedRange(e.target.value)
+        const value = e.target.value;
+        localStorage.setItem(TIMEFRAME_KEY, value);
+      };
+        
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -34,26 +43,36 @@ export const Logs = ({ groups, loading, selectedRange, setSelectedRange }: { gro
        return   (
        <div className="mt-6">
         <div className="flex items-center gap-2 mb-4">
-            <select
-                value={selectedRange}
-                onChange={(e) => setSelectedRange(e.target.value)}
-                className="select select-sm"
-            >
-                {ranges.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-            </select>
-            <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="btn btn-xs btn-ghost">
-            {sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}
-            </button>
-        </div>
+            {loading ? (<div className="skeleton h-4 w-1/2"></div>) : (
+                <>
+                    <select
+                    value={selectedRange}
+                    onChange={(e) => handleChange(e)}
+                    className="select select-sm"
+                    >
+                        {ranges.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                    </select>
+                    <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="btn btn-xs btn-ghost">
+                    {sortOrder === 'asc' ? 'Sort Descending' : 'Sort Ascending'}
+                    </button>
+                </>)}
+            </div>
         <div className="space-y-4">
-            {groups.length === 0 ? loading ? (<span className="loading loading-ring loading-xs"></span>) : noLogs : null}
+            {groups.length === 0 ? loading ? (
+                <div className="flex w-full flex-col gap-4">
+                <div className="skeleton h-32 w-full"></div>
+                <div className="skeleton h-4 w-full"></div>
+                <div className="skeleton h-4 w-full"></div>
+                <div className="skeleton h-4 w-full"></div>
+                </div>
+                ) : noLogs : null}
             {groups.map((group: any) => {
                 const isOpen = openGroups[group.logGroupName] ?? true;
                 const invocations = groupLogsByInvocation(group.events);
                 return (
-                <div key={group.logGroupName} className="p-4 border-b border-dashed border-gray-200">
+                <div key={group.logGroupName} className="lg:p-4 border-b border-dashed border-gray-200">
                     <button
                         onClick={() => toggleGroup(group.logGroupName)}
                         className="flex items-center justify-between w-full text-left"
