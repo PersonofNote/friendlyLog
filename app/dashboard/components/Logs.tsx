@@ -13,7 +13,7 @@ export const Logs = ({ groups, loading, selectedRange, setSelectedRange }: { gro
 
     const TIMEFRAME_KEY = 'friendlylog-timeframe';
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedRange(e.target.value)
         const value = e.target.value;
         localStorage.setItem(TIMEFRAME_KEY, value);

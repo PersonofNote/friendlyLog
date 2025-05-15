@@ -2,7 +2,7 @@
 // TODO: Fix filtering
 import { useState, useEffect } from "react";
 import { StatusTag } from "./StatusTag";
-import { ChevronDown, ChevronUp, Funnel, Timer, ThermometerSnowflake } from "lucide-react";
+import { ChevronDown, ChevronUp, Funnel, Timer } from "lucide-react";
 import { noLogs } from "./noLogs";
 
 export function LogViewer({ invocations, sortOrder, loading }: { invocations: any[], sortOrder: 'asc' | 'desc', loading: boolean }) {
@@ -85,7 +85,7 @@ function InvocationBlock({ invocation, toggleFilter }: { invocation: any, toggle
             </span>
           )}
           {invocation.coldStart && (
-                <StatusTag status={'coldstart'} onClick={(status) => toggleFilter('coldstart')} aria-label="Cold Start" />
+                <StatusTag status={'coldstart'} onClick={() => toggleFilter('coldstart')} aria-label="Cold Start" />
           )}
           {invocation.hasError && (
             <StatusTag status="error" onClick={(status) => toggleFilter(status)} aria-label="Error" />

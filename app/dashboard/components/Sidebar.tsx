@@ -90,9 +90,15 @@ return (
         </svg>
         </button>
 
-        <aside id="settings-menu" className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0     lg:static 
-      lg:translate-x-0 `} aria-label="Settings Menu">
+        <aside id="settings-menu" className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 lg:static lg:translate-x-0`} aria-label="Settings Menu">
             <div className="h-full px-3 py-4 overflow-y-auto bg-base-100">
+                {loading ?(
+                    <div className="flex w-full flex-col gap-4">
+                    <div className="skeleton h-32 w-full"></div>
+                    <div className="skeleton h-4 w-full"></div>
+                    <div className="skeleton h-4 w-full"></div>
+                    <div className="skeleton h-4 w-full"></div>
+                                  </div>):(
                 <ul className="space-y-2 font-medium">
                     <li>
                         <button onClick={() => setSettingsOpen(!settingsOpen)} type="button" className="flex items-center w-full p-2 mb-2 text-base text-content transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700" aria-controls="user-settings" data-collapse-toggle="user-settings">
@@ -129,6 +135,8 @@ return (
                         </a>
                     </li>
                 </ul>
+                                  )
+                                }
             </div>
         </aside>
     </>
