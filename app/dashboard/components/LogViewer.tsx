@@ -39,7 +39,12 @@ const toggleFilter = (filter: string) => {
   }, [invocations, sortOrder]);
 
 
-  return loading ?  (<span className="loading loading-ring loading-xs"></span>)   : (
+  return loading ?  ( <div className="flex w-full flex-col gap-4">
+    <div className="skeleton h-32 w-full"></div>
+    <div className="skeleton h-4 w-full"></div>
+    <div className="skeleton h-4 w-full"></div>
+    <div className="skeleton h-4 w-full"></div>
+</div>)   : (
     <div>
         {filter.length !== 0 && <div className="flex items-center gap-2 py-2">
           <Funnel className="w-4 h-4" aria-label="Filter" />| 

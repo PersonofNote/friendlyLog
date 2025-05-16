@@ -72,11 +72,6 @@ export default function Dashboard() {
     checkUser();
   }, []);
 
-  useEffect(() => { 
-    console.log("USER")
-    console.log(user)
-}, [user]);
-
   // #endregion
 
   // #region Constants
@@ -85,13 +80,17 @@ export default function Dashboard() {
 
   return (
    <div style={{ minHeight: '100vh' }} className="flex flex-col lg:flex-row">
-        {user && <Sidebar user={user} /> }
-        <main className="p-4 grow">
-        <div className="lg:p-4 lg:border-2 lg:border-gray-200 lg:border-dashed rounded-lg dark:border-gray-700 max-w-4xl mx-auto">    
-            <Logs groups={logs} loading={loading} selectedRange={selectedRange} setSelectedRange={setSelectedRange} />
-            {error && <p className="text-error">{error}</p>}
-        </div>
-        </main>
+      {user && (
+        <>
+          <Sidebar user={user} /> 
+          <main className="p-4 grow">
+          <div className="lg:p-4 lg:border-2 lg:border-gray-200 lg:border-dashed rounded-lg dark:border-gray-700 max-w-4xl mx-auto">    
+              <Logs groups={logs} loading={loading} selectedRange={selectedRange} setSelectedRange={setSelectedRange} />
+              {error && <p className="text-error">{error}</p>}
+          </div>
+          </main>
+        </>
+      )}
     </div> 
   )
 }

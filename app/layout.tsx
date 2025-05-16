@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from 'next/link';
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
@@ -34,6 +35,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <footer className="p-2 text-xs"> 
+          Copyright 2025 <Link href="/terms">Privacy Policy</Link> <Link href="/terms">Terms </Link>
+          <div>Questions? Concerns? Cool stories? Email us! </div>
+        </footer>
         <Analytics/>
       </body>
     </html>
