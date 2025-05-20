@@ -14,13 +14,13 @@ export const Sidebar = ({user} : {user?: User} ) => {
     const [showPopup, setShowPopup] = useState(false);
   
     const handleToggle = () => {
-        console.log("Toggle clicked");
-      setEmailsEnabled(!emailsEnabled);
-      setShowPopup(true);
-  
-      setTimeout(() => {
+        if (loading) return;
+        setEmailsEnabled(!emailsEnabled);
+        setShowPopup(true);
+
+        setTimeout(() => {
         setShowPopup(false);
-      }, 2000);
+        }, 2000);
     };
 
     const handleSignout = async() => {
@@ -71,6 +71,7 @@ export const Sidebar = ({user} : {user?: User} ) => {
                     return;
                 }
                 if (existingSettings) {
+                    console.log("USER SETTINGS:", existingSettings);
                     setEmailsEnabled(existingSettings.summaries_enabled);
                 }
         }
