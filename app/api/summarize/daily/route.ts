@@ -8,7 +8,14 @@ import { createClient } from "@/utils/supabase/server";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
-  console.log("POST /api/summarize/daily");
+  const token = req.nextUrl.searchParams.get("token");
+  const expectedToken = process.env.CRON_SECRET;
+
+  if (!token || token !== expectedToken) {
+    // Optional: send alert or log unauthorized access
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  
     if (req.method !== 'POST') return NextResponse.json({ status: 405, message: 'Method not allowed' });
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();

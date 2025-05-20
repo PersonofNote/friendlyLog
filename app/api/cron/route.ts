@@ -12,11 +12,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const senderEmail = process.env.SUMMARY_EAMAIL_ADDRESS! || 'none set';
 
 export async function GET(req: NextRequest, res: NextResponse) {
-  const authHeader = req.headers.get('authorization') || '';
-  const expectedSecret = process.env.CRON_SECRET;
+  const token = req.nextUrl.searchParams.get("token");
+  const expectedToken = process.env.CRON_SECRET;
 
-  if (!authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== expectedSecret) {
-    return Response.json({ error: 'Unauthorized' }, { status: 500 });
+  if (!token || token !== expectedToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
