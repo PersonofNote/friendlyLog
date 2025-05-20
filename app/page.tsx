@@ -6,7 +6,7 @@ export default function Home() {
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         <article className="prose prose-lg">
-          <h1>FriednlyLog: Prettier Logs with Daily Summaries</h1>
+          <h1>FriendlyLog: Prettier Cloudwatch Logs with Daily Summaries</h1>
           <h2> Get easy-to-read, visually pleasing logs plus clear, human-readable summaries</h2>
 
           <h3>Great for:</h3>
@@ -18,18 +18,8 @@ export default function Home() {
           </ul>
         </article>
         <div className="flex flex-col gap-4">
-          <h2 className="text-2xl font-bold">Launching Soon!</h2>
-          {/*
-          <p>Sign up to be notified when FriendlyLog is available.</p>
-          <form action="/auth/signup">
-            <input type="email" placeholder="Email" />
-            <button type="submit">Sign Up</button>
-          </form>
-          */}
+          <h2 className="text-2xl font-bold">Available soon</h2>
         </div>
-        {/*
-        <PriceTiers />
-        */}
       </main>
     </div>
   );

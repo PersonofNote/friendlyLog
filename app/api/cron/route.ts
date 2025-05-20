@@ -11,14 +11,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const senderEmail = process.env.SUMMARY_EAMAIL_ADDRESS! || 'none set';
 
-export async function GET(req: NextRequest, res: NextResponse) {
+export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   const expectedToken = process.env.CRON_SECRET;
 
   if (!token || token !== expectedToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
