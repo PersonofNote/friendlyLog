@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSummary, getLogs, processSummary } from '../helpers';     
 import { Resend } from 'resend'; 
@@ -9,9 +9,15 @@ const WAIT_BETWEEN_BATCHES_MS = 200;
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const senderEmail = 'FriendlyLog <noreply@habelex.com>'
+const senderEmail = process.env.SUMMARY_EAMAIL_ADDRESS! || 'none set';
 
-export async function GET() {
+export async function GET(req: NextRequest, res: NextResponse) {
+  const authHeader = req.headers.get('authorization') || '';
+  const expectedSecret = process.env.CRON_SECRET;
+
+  if (!authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== expectedSecret) {
+    return Response.json({ error: 'Unauthorized' }, { status: 500 });
+  }
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
