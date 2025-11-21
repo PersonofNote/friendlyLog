@@ -55,13 +55,6 @@ Supabase – Auth + DB
 
 AWS SDK v3 – Programmatic CloudWatch access
 
-💰 Pricing Model
-This project is designed as a freemium SaaS:
-
-Free Tier: 1 AWS integration/log group, single dashboard, email alerts
-
-Pro Tiers: multiple integrations, customizable summaries, plain-language alert creation
-
 📌 Roadmap
  Basic Supabase auth flow ✅
 
@@ -69,7 +62,7 @@ Pro Tiers: multiple integrations, customizable summaries, plain-language alert c
 
  Pretty logs ✅
 
- Daily summary email
+ Daily summary email ✅
 
  Subscription implementation
 
